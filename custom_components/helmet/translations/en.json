@@ -1,0 +1,60 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a library card",
+        "description": "Add one card at a time. To follow several family members' cards, add the integration again for each card.",
+        "data": {
+          "name": "Name",
+          "card_number": "Library card number",
+          "pin": "PIN"
+        },
+        "data_description": {
+          "name": "Whose card this is, such as Liisa. It names the card's device and entities."
+        }
+      },
+      "reauth_confirm": {
+        "title": "PIN for {name}",
+        "description": "The library no longer accepts the PIN of {name}'s card. Enter the card's current PIN.",
+        "data": {
+          "pin": "PIN"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "The library didn't accept the card number and PIN.",
+      "cannot_connect": "Couldn't reach the Helmet web library. Try again later."
+    },
+    "abort": {
+      "already_configured": "This card has been added already.",
+      "reauth_successful": "The PIN was updated."
+    }
+  },
+  "entity": {
+    "calendar": {
+      "calendar": {
+        "name": "Due dates"
+      }
+    },
+    "sensor": {
+      "loans": {
+        "name": "Loans"
+      },
+      "overdue_loans": {
+        "name": "Overdue loans"
+      },
+      "next_due_date": {
+        "name": "Next due date"
+      },
+      "holds": {
+        "name": "Holds"
+      },
+      "holds_available": {
+        "name": "Holds ready for pickup"
+      },
+      "fines": {
+        "name": "Fees"
+      }
+    }
+  }
+}

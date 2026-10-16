@@ -1,0 +1,60 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Lisää kirjastokortti",
+        "description": "Lisää yksi kortti kerrallaan. Jos haluat seurata usean perheenjäsenen kortteja, lisää integraatio uudelleen jokaiselle kortille.",
+        "data": {
+          "name": "Nimi",
+          "card_number": "Kirjastokortin numero",
+          "pin": "PIN-koodi"
+        },
+        "data_description": {
+          "name": "Kenen kortti on, esim. Liisa. Nimi näkyy kortin laitteessa ja entiteeteissä."
+        }
+      },
+      "reauth_confirm": {
+        "title": "PIN-koodi: {name}",
+        "description": "Kirjasto ei enää hyväksy kortin {name} PIN-koodia. Anna kortin nykyinen PIN-koodi.",
+        "data": {
+          "pin": "PIN-koodi"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Kirjasto ei hyväksynyt kortin numeroa ja PIN-koodia.",
+      "cannot_connect": "Helmet-verkkokirjastoon ei saatu yhteyttä. Yritä myöhemmin uudelleen."
+    },
+    "abort": {
+      "already_configured": "Tämä kortti on jo lisätty.",
+      "reauth_successful": "PIN-koodi päivitettiin."
+    }
+  },
+  "entity": {
+    "calendar": {
+      "calendar": {
+        "name": "Eräpäivät"
+      }
+    },
+    "sensor": {
+      "loans": {
+        "name": "Lainat"
+      },
+      "overdue_loans": {
+        "name": "Myöhässä olevat lainat"
+      },
+      "next_due_date": {
+        "name": "Seuraava eräpäivä"
+      },
+      "holds": {
+        "name": "Varaukset"
+      },
+      "holds_available": {
+        "name": "Noudettavat varaukset"
+      },
+      "fines": {
+        "name": "Maksut"
+      }
+    }
+  }
+}

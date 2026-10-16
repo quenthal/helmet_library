@@ -1,0 +1,22 @@
+<!DOCTYPE html><html lang="en-gb"><body>
+<header><a href="/MyResearch/UserLogin">Log in</a></header>
+<div class="flash-message alert alert-danger">The library system is not available at the moment</div><div class="login-col">
+<form method="post" class="form-vertical" action="/MyResearch/Home" name="loginForm" id="loginForm">
+  <div>
+    <div class="form-group">
+      <label class="form-label" for="login_ILS_target">Organisation:</label>
+      <select id="login_ILS_target" name="target" required class="form-select">
+        <option value="other">Some other library</option>
+        <option value="helmet" selected="selected">Helmet libraries</option>
+      </select>
+    </div>
+    <div class="form-group"><input id="login_ILS_username" type="text" name="username" value="" required class="form-control"></div>
+    <div class="form-group"><input id="login_ILS_password" type="password" name="password" required class="form-control"></div>
+  </div>
+  <div class="form-group"><div class="remember-me-ils"><label><input type="checkbox" name="remember_me"> Remember me</label></div></div>
+  <input type="hidden" name="auth_method" value="MultiILS">
+  <input type="hidden" name="csrf" value="abc123csrf">
+  <div class="form-group"><input class="btn btn-primary" type="submit" name="processLogin" value="Login"></div>
+</form>
+</div>
+</body></html>
