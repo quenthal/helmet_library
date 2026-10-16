@@ -1,0 +1,20 @@
+renew_loans:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: helmet
+    titles:
+      example: "Muumipeikko"
+      selector:
+        text:
+          multiple: true
+    due_within_days:
+      example: 2
+      selector:
+        number:
+          min: 0
+          max: 60
+          mode: box
+          unit_of_measurement: days

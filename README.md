@@ -21,8 +21,50 @@ For each card, a device named **Helmet _name_** with:
 | Holds ready for pickup | Number of holds waiting at the library | The same details for those holds |
 | Fees | Unpaid fees in euros | |
 | Due dates (calendar) | | An all-day event for each due date, and for the last pickup day of each hold ready for pickup |
+| Renew all loans (button) | | Renews every loan of the card that can be renewed |
 
-The account is read once an hour.
+The account is read once an hour, and again right before a renewal.
+
+### Renewing loans
+
+The **Renew all loans** button renews every loan that can be renewed. For more choice, the
+`helmet.renew_loans` action renews a card's loans that match:
+
+| Field | |
+| --- | --- |
+| `config_entry_id` | The card |
+| `titles` | Only the loans with any of these in their title (optional) |
+| `due_within_days` | Only the loans due within this many days (optional) |
+
+The action responds with the loans that were renewed, with their new due dates, and those that weren't, with the
+library's reason. Every renewal, from the button or the action, also fires a `helmet_loans_renewed` event with the
+same details and the card's `name`.
+
+Each renewal uses up one of the item's renewals, so an automation should renew only loans that are about to be due.
+For example, renewing every morning the loans due within two days, and telling what happened:
+
+```yaml
+automation:
+  - alias: Renew Liisa's library loans
+    triggers:
+      - trigger: time
+        at: "07:00:00"
+    actions:
+      - action: helmet.renew_loans
+        data:
+          config_entry_id: YOUR_CARD_ENTRY_ID
+          due_within_days: 2
+        response_variable: result
+      - if: "{{ result.renewed or result.not_renewed }}"
+        then:
+          - action: notify.notify
+            data:
+              title: Kirjasto
+              message: >
+                {% for loan in result.renewed %}Uusittu: {{ loan.title }}, eräpäivä {{ loan.due_date }}
+                {% endfor %}{% for loan in result.not_renewed %}EI uusittu: {{ loan.title }} ({{ loan.reason }})
+                {% endfor %}
+```
 
 ### Automation ideas
 
@@ -77,7 +119,7 @@ credentials, and in every backup of it. With them, anyone can log in to the card
 see its loans, holds and contact details, and place or cancel holds. They don't give access to anything outside the
 library.
 
-The integration itself only reads the account. It doesn't renew loans or change holds.
+The integration reads the account, and renews loans when asked to. It doesn't place, change or cancel holds.
 
 ## Limits
 

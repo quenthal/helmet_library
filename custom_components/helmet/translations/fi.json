@@ -55,6 +55,45 @@
       "fines": {
         "name": "Maksut"
       }
+    },
+    "button": {
+      "renew_all": {
+        "name": "Uusi kaikki lainat"
+      }
+    }
+  },
+  "services": {
+    "renew_loans": {
+      "name": "Uusi lainat",
+      "description": "Uusii kirjastokortin uusittavissa olevat lainat: kaikki, tai ne, jotka vastaavat nimiä tai joiden eräpäivä on lähellä.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Kirjastokortti",
+          "description": "Kenen lainat uusitaan."
+        },
+        "titles": {
+          "name": "Nimet",
+          "description": "Uusi vain lainat, joiden nimessä on jokin näistä. Tyhjänä kaikki."
+        },
+        "due_within_days": {
+          "name": "Eräpäivä viimeistään",
+          "description": "Uusi vain lainat, joiden eräpäivä on näin monen päivän sisällä. Tyhjänä kaikki."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_auth": {
+      "message": "Kirjasto ei hyväksynyt kortin {name} PIN-koodia."
+    },
+    "renew_failed": {
+      "message": "Kortin {name} lainoja ei voitu uusia: {error}"
+    },
+    "unknown_card": {
+      "message": "Tällaista Helmet-kirjastokorttia ei ole."
+    },
+    "card_not_loaded": {
+      "message": "Kortti {name} ei ole juuri nyt käytössä."
     }
   }
 }

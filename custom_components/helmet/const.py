@@ -29,3 +29,10 @@ REQUEST_TIMEOUT: Final = 30
 MAX_PAGES: Final = 10
 
 USER_AGENT: Final = "Mozilla/5.0 (compatible; HomeAssistant-Helmet/0.1; +https://www.home-assistant.io)"
+
+SERVICE_RENEW_LOANS: Final = "renew_loans"
+ATTR_CONFIG_ENTRY_ID: Final = "config_entry_id"
+ATTR_TITLES: Final = "titles"
+ATTR_DUE_WITHIN_DAYS: Final = "due_within_days"
+# Fired after every renewal, with the loans that were renewed and those that weren't.
+EVENT_LOANS_RENEWED: Final = "helmet_loans_renewed"

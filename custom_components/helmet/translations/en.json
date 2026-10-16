@@ -55,6 +55,45 @@
       "fines": {
         "name": "Fees"
       }
+    },
+    "button": {
+      "renew_all": {
+        "name": "Renew all loans"
+      }
+    }
+  },
+  "services": {
+    "renew_loans": {
+      "name": "Renew loans",
+      "description": "Renews the loans of a library card that can be renewed: all of them, or those that match the titles or are due soon.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Library card",
+          "description": "Whose loans to renew."
+        },
+        "titles": {
+          "name": "Titles",
+          "description": "Renew only the loans with any of these in their title. Leave empty for all."
+        },
+        "due_within_days": {
+          "name": "Due within",
+          "description": "Renew only the loans due within this many days. Leave empty for all."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_auth": {
+      "message": "The library didn't accept the PIN of {name}'s card."
+    },
+    "renew_failed": {
+      "message": "Couldn't renew the loans of {name}: {error}"
+    },
+    "unknown_card": {
+      "message": "No such Helmet library card."
+    },
+    "card_not_loaded": {
+      "message": "The card of {name} isn't set up right now."
     }
   }
 }
