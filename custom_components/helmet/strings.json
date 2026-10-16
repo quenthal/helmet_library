@@ -60,6 +60,38 @@
       "renew_all": {
         "name": "Renew all loans"
       }
+    },
+    "binary_sensor": {
+      "attention": {
+        "name": "Needs attention",
+        "state": {
+          "on": "Needs attention",
+          "off": "All good"
+        },
+        "state_attributes": {
+          "reasons": {
+            "name": "Reasons",
+            "state": {
+              "overdue": "Overdue loans",
+              "due_soon": "Due soon, can't be renewed",
+              "hold_ready": "Hold ready for pickup",
+              "fees": "Unpaid fees"
+            }
+          },
+          "overdue": {
+            "name": "Overdue"
+          },
+          "due_soon": {
+            "name": "Due soon"
+          },
+          "holds_ready": {
+            "name": "Holds ready"
+          },
+          "fees": {
+            "name": "Fees"
+          }
+        }
+      }
     }
   },
   "services": {

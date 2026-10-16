@@ -37,6 +37,7 @@ _PACKAGE.__path__ = [str(Path(__file__).resolve().parent / "custom_components" /
 sys.modules["helmet_core"] = _PACKAGE
 
 from helmet_core.api import HelmetAuthError, HelmetClient, HelmetError, RenewOutcome  # noqa: E402
+from helmet_core.attention import attention  # noqa: E402
 from helmet_core.const import BASE_URL  # noqa: E402
 from helmet_core.parser import Account, HoldStatus, Loan  # noqa: E402
 
@@ -119,6 +120,20 @@ def print_account(account: Account) -> None:
 
     fines = "ei tiedossa" if account.fines_cents is None else f"{account.fines_cents / 100:.2f} €"
     print(f"\nMaksut: {fines}")
+
+    found = attention(account, today)
+    if not found.needed:
+        print("\nTarvitsee huomiota: ei, kaikki kunnossa")
+        return
+    print("\nTarvitsee huomiota:")
+    for title in found.overdue:
+        print(f"  myöhässä: {title}")
+    for title in found.due_soon:
+        print(f"  erääntyy pian, ei uusittavissa: {title}")
+    for title in found.holds_ready:
+        print(f"  noudettavissa: {title}")
+    if found.fees_cents:
+        print(f"  maksuja {found.fees_cents / 100:.2f} €")
 
 
 def as_json(account: Account) -> str:

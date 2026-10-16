@@ -1,15 +1,47 @@
 {
   "entity": {
-    "button": {"renew_all": {"default": "mdi:book-refresh"}},
-    "calendar": {"calendar": {"default": "mdi:calendar-clock"}},
+    "button": {
+      "renew_all": {
+        "default": "mdi:book-refresh"
+      }
+    },
+    "calendar": {
+      "calendar": {
+        "default": "mdi:calendar-clock"
+      }
+    },
     "sensor": {
-      "loans": {"default": "mdi:bookshelf"},
-      "overdue_loans": {"default": "mdi:book-alert"},
-      "next_due_date": {"default": "mdi:calendar-alert"},
-      "holds": {"default": "mdi:book-clock"},
-      "holds_available": {"default": "mdi:book-check"},
-      "fines": {"default": "mdi:cash"}
+      "loans": {
+        "default": "mdi:bookshelf"
+      },
+      "overdue_loans": {
+        "default": "mdi:book-alert"
+      },
+      "next_due_date": {
+        "default": "mdi:calendar-alert"
+      },
+      "holds": {
+        "default": "mdi:book-clock"
+      },
+      "holds_available": {
+        "default": "mdi:book-check"
+      },
+      "fines": {
+        "default": "mdi:cash"
+      }
+    },
+    "binary_sensor": {
+      "attention": {
+        "default": "mdi:book-check-outline",
+        "state": {
+          "on": "mdi:book-alert"
+        }
+      }
     }
   },
-  "services": {"renew_loans": {"service": "mdi:book-refresh"}}
+  "services": {
+    "renew_loans": {
+      "service": "mdi:book-refresh"
+    }
+  }
 }

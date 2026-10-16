@@ -60,6 +60,38 @@
       "renew_all": {
         "name": "Uusi kaikki lainat"
       }
+    },
+    "binary_sensor": {
+      "attention": {
+        "name": "Tarvitsee huomiota",
+        "state": {
+          "on": "Tarvitsee huomiota",
+          "off": "Kaikki kunnossa"
+        },
+        "state_attributes": {
+          "reasons": {
+            "name": "Syyt",
+            "state": {
+              "overdue": "Myöhässä olevia lainoja",
+              "due_soon": "Erääntyy pian, ei uusittavissa",
+              "hold_ready": "Varaus noudettavissa",
+              "fees": "Maksamattomia maksuja"
+            }
+          },
+          "overdue": {
+            "name": "Myöhässä"
+          },
+          "due_soon": {
+            "name": "Erääntyy pian"
+          },
+          "holds_ready": {
+            "name": "Noudettavissa"
+          },
+          "fees": {
+            "name": "Maksut"
+          }
+        }
+      }
     }
   },
   "services": {

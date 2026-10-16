@@ -20,6 +20,7 @@ For each card, a device named **Helmet _name_** with:
 | Holds | Number of holds | Every hold with its status (`available`, `in_transit`, `waiting`), queue position, pickup location, last pickup day and pickup number |
 | Holds ready for pickup | Number of holds waiting at the library | The same details for those holds |
 | Fees | Unpaid fees in euros | |
+| Needs attention (binary sensor) | On when a loan is overdue, a loan that can't be renewed is due today or tomorrow, a hold is ready for pickup, or there are unpaid fees | `reasons`, and the titles for each reason |
 | Due dates (calendar) | | An all-day event for each due date, and for the last pickup day of each hold ready for pickup |
 | Renew all loans (button) | | Renews every loan of the card that can be renewed |
 

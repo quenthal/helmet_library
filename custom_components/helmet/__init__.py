@@ -18,7 +18,7 @@ from .const import CONF_CARD_NUMBER, CONF_PIN, DOMAIN
 from .coordinator import HelmetConfigEntry, HelmetCoordinator
 from .services import async_setup_services
 
-PLATFORMS: list[Platform] = [Platform.BUTTON, Platform.CALENDAR, Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.CALENDAR, Platform.SENSOR]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
