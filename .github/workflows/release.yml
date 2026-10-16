@@ -1,0 +1,31 @@
+name: Release
+
+# Publishes a release whenever the version in the manifest is one that hasn't been released yet,
+# so that releasing is only a matter of raising the version.
+on:
+  push:
+    branches: [main]
+    paths: [custom_components/helmet/manifest.json]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Release the manifest's version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(jq -r .version custom_components/helmet/manifest.json)
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "$tag has been released already"
+            exit 0
+          fi
+          gh release create "$tag" --target "$GITHUB_SHA" --title "$tag" --generate-notes
