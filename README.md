@@ -1,5 +1,7 @@
 # Helmet libraries for Home Assistant
 
+<img src="custom_components/helmet/brand/icon.png" width="96" alt="An open book with a bookmark" align="right">
+
 Home Assistant integration that follows the loans, holds and fees of a Helmet library card
 (the libraries of Helsinki, Espoo, Vantaa and Kauniainen).
 
@@ -101,6 +103,9 @@ pages can have your name and other personal details in them, so remove those bef
 
 Copy the `custom_components/helmet` folder to your Home Assistant installation's `config/custom_components` folder
 and restart Home Assistant.
+
+The integration's icon shows in Home Assistant 2026.3 and later. It is drawn for this integration (source in
+`docs/icon.svg`) and is not Helmet's logo.
 
 ## Adding cards
 
