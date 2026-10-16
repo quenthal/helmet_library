@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import json
 from contextlib import asynccontextmanager
+from datetime import date
 from typing import Any
 from urllib.parse import urlparse
 
 import aiohttp
 import pytest
 
-from custom_components.helmet.api import HelmetAuthError, HelmetClient, HelmetError
+from custom_components.helmet.api import HelmetAuthError, HelmetClient, HelmetError, RenewOutcome
 
 from . import fixture
 
@@ -40,6 +41,8 @@ class FakeLibrary:
         self.loan_pages = {"1": fixture("loans.html")}
         self.fail_with: int | None = None
         self.requests: list[tuple[str, str, dict[str, str]]] = []
+        self.renewals: list[Any] = []
+        self.renewed = False
 
     @asynccontextmanager
     async def request(self, method: str, url: str, **kwargs: Any):
@@ -69,7 +72,13 @@ class FakeLibrary:
             return FakeResponse(200, fixture("login_invalid.html"))
         if not self.logged_in:
             return FakeResponse(200, fixture("login.html"))
+        if path == "/MyResearch/CheckedOut" and method == "POST":
+            self.renewals.append(kwargs["data"])
+            self.renewed = True
+            return FakeResponse(200, fixture("loans_renewed.html"))
         if path == "/MyResearch/CheckedOut":
+            if self.renewed:
+                return FakeResponse(200, fixture("loans_renewed.html").replace('<div class="messages">', "<div>"))
             return FakeResponse(200, self.loan_pages[params.get("page", "1")])
         if path == "/Holds/List":
             return FakeResponse(200, fixture("holds.html"))
@@ -151,3 +160,64 @@ async def test_fines_unknown_when_the_call_fails() -> None:
     account = await client(NoFines()).account()
     assert account.fines_cents is None
     assert len(account.loans) == 3
+
+
+async def test_renew_all() -> None:
+    library = FakeLibrary()
+    outcomes = await client(library).renew()
+
+    assert library.renewals == [
+        [
+            ("csrf", "abc"),
+            ("renewSelected", "1"),
+            ("renewSelectedIDS[]", "i1001|b2001"),
+            ("renewSelectedIDS[]", "i1003|b2003"),
+        ]
+    ]
+    assert outcomes == [
+        RenewOutcome("Muumipeikko ja pyrstötähti", True, date(2026, 11, 12)),
+        RenewOutcome("Ronja Ryövärintytär", False, date(2026, 10, 22), "Item has holds"),
+    ]
+
+
+async def test_renew_selected() -> None:
+    library = FakeLibrary()
+    outcomes = await client(library).renew(["i1001|b2001"])
+
+    assert [field for field in library.renewals[0] if field[0] == "renewSelectedIDS[]"] == [
+        ("renewSelectedIDS[]", "i1001|b2001")
+    ]
+    assert outcomes == [RenewOutcome("Muumipeikko ja pyrstötähti", True, date(2026, 11, 12))]
+
+
+async def test_renew_checks_loans_missing_from_the_answer() -> None:
+    class QuietLibrary(FakeLibrary):
+        """Answers the renewal without per-loan results, as for loans on a later page."""
+
+        def _answer(self, method: str, url: str, kwargs: dict[str, Any]) -> FakeResponse:
+            answer = super()._answer(method, url, kwargs)
+            if method == "POST" and urlparse(url).path == "/MyResearch/CheckedOut":
+                return FakeResponse(200, fixture("loans_empty.html"))
+            return answer
+
+    outcomes = await client(QuietLibrary()).renew()
+
+    # The due dates read after the renewal tell: the first moved, the third didn't.
+    assert [(outcome.title, outcome.renewed) for outcome in outcomes] == [
+        ("Muumipeikko ja pyrstötähti", True),
+        ("Ronja Ryövärintytär", False),
+    ]
+
+
+async def test_renew_rejects_loans_that_cant_be_renewed() -> None:
+    library = FakeLibrary()
+    with pytest.raises(HelmetError):
+        await client(library).renew(["nope"])
+    assert library.renewals == []
+
+
+async def test_renew_nothing_renewable() -> None:
+    library = FakeLibrary()
+    library.loan_pages = {"1": fixture("loans_empty.html")}
+    assert await client(library).renew() == []
+    assert library.renewals == []

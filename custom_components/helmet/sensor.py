@@ -32,6 +32,11 @@ def loan_details(loan: Loan, today: date) -> dict[str, Any]:
         "overdue": loan.overdue(today),
         "renewable": loan.renewable,
         "renewals_remaining": loan.renewals_remaining,
+        "author": loan.author,
+        "format": loan.format,
+        "checkout_date": loan.checkout_date.isoformat() if loan.checkout_date else None,
+        "borrowing_location": loan.borrowing_location,
+        "notices": list(loan.notices),
     }
 
 

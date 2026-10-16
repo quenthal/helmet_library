@@ -40,6 +40,8 @@ python3 helmet_cli.py
 ```
 
 It asks for the card number and PIN (or reads `HELMET_CARD` and `HELMET_PIN`), and prints the loans, holds and fees.
+`--renew-all` renews every loan that can be renewed, and `--renew 1,3` the loans with those numbers in the list. It
+asks before renewing, unless given `--yes`.
 `--dump pages` also saves the pages the library answered with, which helps when something isn't read right. The saved
 pages can have your name and other personal details in them, so remove those before sharing them.
 

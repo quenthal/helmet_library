@@ -9,7 +9,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any
+from collections.abc import Awaitable, Callable, Iterable
+from dataclasses import dataclass
+from datetime import date
+from typing import Any, TypeVar
 
 import aiohttp
 
@@ -30,6 +33,8 @@ from .parser import Account, Hold, Loan
 
 _LOGGER = logging.getLogger(__name__)
 
+T = TypeVar("T")
+
 TIMEOUT = aiohttp.ClientTimeout(total=REQUEST_TIMEOUT)
 HEADERS = {"User-Agent": USER_AGENT, "Accept-Language": "en-GB,en;q=0.8,fi;q=0.5"}
 
@@ -40,6 +45,18 @@ class HelmetError(Exception):
 
 class HelmetAuthError(HelmetError):
     """The library didn't accept the card number and PIN."""
+
+
+@dataclass(frozen=True)
+class RenewOutcome:
+    """What happened to one loan that was renewed."""
+
+    title: str
+    renewed: bool
+    # The due date after the renewal: the new one, or the old one when the renewal failed.
+    due_date: date | None
+    # Why the library didn't renew it, when it said.
+    message: str | None = None
 
 
 class HelmetClient:
@@ -74,19 +91,75 @@ class HelmetClient:
 
     async def account(self) -> Account:
         """Reads the card's loans, holds and fees, logging in first when needed."""
+        return await self._logged_in_call(self._read_account)
+
+    async def renew(self, renew_ids: Iterable[str] | None = None) -> list[RenewOutcome]:
+        """Renews the loans with the given renewal ids (Loan.renew_id), or every renewable loan when none are given."""
+        ids = None if renew_ids is None else list(dict.fromkeys(renew_ids))
+        return await self._logged_in_call(lambda: self._renew(ids))
+
+    async def _logged_in_call(self, call: Callable[[], Awaitable[T]]) -> T:
+        """Makes the call in a logged in session, logging in again once if the session has ended."""
         async with self._lock:
             if not self._logged_in:
                 await self.login()
             try:
-                return await self._read_account()
+                return await call()
             except _SessionEnded:
                 _LOGGER.debug("The library session had ended; logging in again")
                 self._logged_in = False
                 await self.login()
                 try:
-                    return await self._read_account()
+                    return await call()
                 except _SessionEnded as err:
                     raise HelmetError("The library ended the session right after logging in") from err
+
+    async def _renew(self, ids: list[str] | None) -> list[RenewOutcome]:
+        before = await self._loans()
+        renewable = {loan.renew_id: loan for loan in before if loan.renew_id}
+        if ids is None:
+            ids = list(renewable)
+        unknown = [renew_id for renew_id in ids if renew_id not in renewable]
+        if unknown:
+            raise HelmetError(f"Not renewable loans: {', '.join(unknown)}")
+        if not ids:
+            return []
+
+        url = self._url(LOANS_PATH)
+        form = parser.renew_form(await self._account_page(LOANS_PATH), url)
+        if form is None:
+            raise HelmetError("The loans page had no renewal form")
+        data = [("csrf", form.csrf), ("renewSelected", "1")]
+        data += [("renewSelectedIDS[]", renew_id) for renew_id in ids]
+        answer = await self._post(form.action, data)
+        if parser.is_login_page(answer):
+            # Nothing was renewed, so the renewal can be sent again once logged in.
+            raise _SessionEnded
+        _LOGGER.debug("Renewal answered: %s", parser.page_messages(answer))
+
+        # The answering page tells the result of each renewed loan on it. A loan on a later page
+        # of a long list is checked by whether its due date moved.
+        results = [loan for loan in parser.parse_loans(answer) if loan.renewed is not None]
+        after: list[Loan] | None = None
+        outcomes = []
+        for renew_id in ids:
+            loan = renewable[renew_id]
+            result = next((row for row in results if row.title == loan.title), None)
+            if result is not None:
+                results.remove(result)
+                outcomes.append(RenewOutcome(loan.title, bool(result.renewed), result.due_date, result.renew_message))
+                continue
+            if after is None:
+                try:
+                    after = await self._loans()
+                except _SessionEnded as err:
+                    # Not retried: the renewal has been sent, and sending it again would use another renewal.
+                    raise HelmetError("The library ended the session before the renewal could be checked") from err
+            now = next((row for row in after if row.title == loan.title), None)
+            due = now.due_date if now else None
+            renewed = due is not None and loan.due_date is not None and due > loan.due_date
+            outcomes.append(RenewOutcome(loan.title, renewed, due or loan.due_date))
+        return outcomes
 
     async def _read_account(self) -> Account:
         loans = await self._loans()
@@ -139,7 +212,7 @@ class HelmetClient:
     async def _get(self, url: str, params: dict[str, str] | None = None) -> str:
         return await self._request("GET", url, params=self._params(params))
 
-    async def _post(self, url: str, data: dict[str, str]) -> str:
+    async def _post(self, url: str, data: dict[str, str] | list[tuple[str, str]]) -> str:
         return await self._request("POST", url, params=self._params(None), data=data)
 
     async def _get_json(self, url: str, params: dict[str, str]) -> dict[str, Any]:

@@ -1,0 +1,64 @@
+<!DOCTYPE html><html lang="en-gb"><body>
+<nav><a href="/MyResearch/Logout">Log Out</a></nav>
+<div class="my-research-content myresearch-grid-list">
+<div class="messages"><div class="flash-message alert alert-info">1 item(s) renewed of total 3 checked out items.</div>
+<div class="flash-message alert alert-danger">1 item(s) could not be renewed</div></div>
+<div id="useraccount-content-heading" class="useraccount-header"><h2>Your Checked Out Items (3)</h2></div>
+<form name="renewals" method="post" id="renewals">
+<input type="hidden" value="abc" name="csrf">
+<table class="myresearch-table" aria-label="Your Checked Out Items" tabindex="0">
+  <tr class="visually-hidden myresearch-row" aria-hidden="true">
+    <th id="label-select-column">Select</th><th class="hidden-xs"></th><th id="label-title-column">Loan Details</th>
+  </tr>
+  <tr id="recordhelmet.1" class="myresearch-row">
+    <td class="text-left checkbox-col">
+      <div class="checkbox-container"><div class="checkbox"><label><span class="visually-hidden">Select</span>
+      <input class="checkbox-select-item" type="checkbox" name="renewSelectedIDS[]" value="i1001|b2001" id="checkbox_i1001b2001"></label></div></div>
+      <input type="hidden" name="selectAllIDS[]" value="i1001|b2001">
+    </td>
+    <td class="text-center hidden-xs"><div class="cover-image"><img src="/Cover/Show" class="recordcover"></div></td>
+    <td class="checkedout-status-information">
+      <div class="title-column text-left">
+        <h3 class="record-title"><a href="/Record/helmet.1">Muumipeikko ja pyrstötähti /</a></h3>
+        <div class="record-core-metadata">
+          <span class="format book">Book</span><br>
+          <a href="/Search/Results?lookfor=Jansson%2C+Tove&amp;type=Author">Jansson, Tove</a><br>
+          <strong>Year of Publication:</strong> 1946<br>
+          <strong>Barcode:</strong> 31234000123456<br>
+        </div>
+      </div>
+      <div class="status-column">
+        Checked Out: 1.10.2026<br>
+        <strong>Borrowing Location:</strong> Oodi<br>
+        <strong>Renewals remaining: 3</strong><br>
+        <strong>Due date: 12.11.2026</strong>
+        <div class="alert alert-success">Renewal Successful</div>
+      </div>
+    </td>
+  </tr>
+  <tr id="recordhelmet.2" class="myresearch-row">
+    <td class="text-left checkbox-col"><span class="no-checkbox">Cannot renew</span></td>
+    <td class="checkedout-status-information">
+      <div class="title-column text-left"><h3 class="record-title" tabindex="0">Tuntematon sotilas</h3></div>
+      <div class="status-column">
+        <div class="alert alert-info">Item has holds</div>
+        <div><strong>Renewed 5 / 5 times</strong></div>
+        <strong>Due date: 9.10.2026 <span class="due-time">23:59</span></strong>
+        <div class="alert alert-danger">Item Overdue</div>
+      </div>
+    </td>
+  </tr>
+  <tr id="recordhelmet.3" class="myresearch-row">
+    <td class="text-left checkbox-col">
+      <input class="checkbox-select-item" type="checkbox" name="renewSelectedIDS[]" value="i1003|b2003">
+    </td>
+    <td class="checkedout-status-information">
+      <div class="title-column text-left"><h3 class="record-title"><a href="/Record/helmet.3">Ronja Ryövärintytär</a></h3></div>
+      <div class="status-column"><strong>Due date: 22.10.2026</strong>
+        <div class="alert alert-danger">This item could not be renewed: Item has holds</div></div>
+    </td>
+  </tr>
+</table>
+</form>
+</div>
+</body></html>

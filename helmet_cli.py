@@ -6,6 +6,8 @@ Uses the same code as the integration (custom_components/helmet/api.py and parse
     sudo apt install python3-aiohttp python3-bs4
     python3 helmet_cli.py
     python3 helmet_cli.py --dump pages      # also saves the pages it read, for debugging
+    python3 helmet_cli.py --renew-all       # renews every loan that can be renewed
+    python3 helmet_cli.py --renew 1,3       # renews loans 1 and 3 of the list
 
 The card number and PIN are asked for, or read from HELMET_CARD and HELMET_PIN.
 The PIN is never taken as an argument, so that it doesn't end up in the shell history.
@@ -34,9 +36,9 @@ _PACKAGE = types.ModuleType("helmet_core")
 _PACKAGE.__path__ = [str(Path(__file__).resolve().parent / "custom_components" / "helmet")]
 sys.modules["helmet_core"] = _PACKAGE
 
-from helmet_core.api import HelmetAuthError, HelmetClient, HelmetError  # noqa: E402
+from helmet_core.api import HelmetAuthError, HelmetClient, HelmetError, RenewOutcome  # noqa: E402
 from helmet_core.const import BASE_URL  # noqa: E402
-from helmet_core.parser import Account, HoldStatus  # noqa: E402
+from helmet_core.parser import Account, HoldStatus, Loan  # noqa: E402
 
 
 class DumpingClient(HelmetClient):
@@ -64,18 +66,40 @@ class DumpingClient(HelmetClient):
         path.write_text(content, encoding="utf-8")
 
 
+def fmt(day: date | None) -> str:
+    return day.strftime("%d.%m.%Y") if day else "?"
+
+
+def sorted_loans(loans: list[Loan]) -> list[Loan]:
+    """The loans in the order they are listed and numbered: the earliest due date first."""
+    return sorted(loans, key=lambda loan: (loan.due_date or date.max, loan.title))
+
+
 def print_account(account: Account) -> None:
     today = date.today()
     print(f"\nLainat ({len(account.loans)}):")
-    for loan in sorted(account.loans, key=lambda loan: (loan.due_date or date.max, loan.title)):
-        due = loan.due_date.strftime("%d.%m.%Y") if loan.due_date else "?"
-        notes = []
-        if loan.overdue(today):
-            notes.append("MYÖHÄSSÄ")
-        notes.append("uusittavissa" if loan.renewable else "ei uusittavissa")
+    for number, loan in enumerate(sorted_loans(account.loans), start=1):
+        late = "  MYÖHÄSSÄ" if loan.overdue(today) else ""
+        print(f"{number:3}. {fmt(loan.due_date)}  {loan.title}{late}")
+        details = [part for part in (loan.author, loan.format, loan.year, loan.issue) if part]
+        if loan.checkout_date or loan.borrowing_location:
+            details.append(
+                " ".join(
+                    filter(
+                        None,
+                        ("lainattu", fmt(loan.checkout_date) if loan.checkout_date else None, loan.borrowing_location),
+                    )
+                )
+            )
+        renew = "uusittavissa" if loan.renewable else "ei uusittavissa"
         if loan.renewals_remaining is not None:
-            notes.append(f"uusintoja jäljellä {loan.renewals_remaining}")
-        print(f"  {due}  {loan.title}  ({', '.join(notes)})")
+            renew += f", uusintoja jäljellä {loan.renewals_remaining}"
+        details.append(renew)
+        print(f"       {' · '.join(details)}")
+        if loan.barcode:
+            print(f"       viivakoodi {loan.barcode}")
+        for notice in loan.notices:
+            print(f"       ! {notice}")
 
     print(f"\nVaraukset ({len(account.holds)}):")
     for hold in account.holds:
@@ -106,6 +130,36 @@ def as_json(account: Account) -> str:
     return json.dumps(asdict(account), default=default, indent=2, ensure_ascii=False)
 
 
+def chosen_loans(account: Account, numbers: str) -> list[Loan]:
+    """The loans with the given numbers of the list, such as "1,3" or "2-4"."""
+    loans = sorted_loans(account.loans)
+    chosen: list[Loan] = []
+    for part in numbers.replace(" ", "").split(","):
+        if not part:
+            continue
+        first, _, last = part.partition("-")
+        for number in range(int(first), int(last or first) + 1):
+            if not 1 <= number <= len(loans):
+                raise ValueError(f"Lainaa {number} ei ole listassa (lainoja on {len(loans)})")
+            if loans[number - 1] not in chosen:
+                chosen.append(loans[number - 1])
+    return chosen
+
+
+def print_outcomes(outcomes: list[RenewOutcome]) -> None:
+    print("\nUusinta:")
+    for outcome in outcomes:
+        if outcome.renewed:
+            print(f"  OK     {outcome.title}: uusi eräpäivä {fmt(outcome.due_date)}")
+        else:
+            reason = f": {outcome.message}" if outcome.message else ""
+            print(f"  EI     {outcome.title}{reason} (eräpäivä {fmt(outcome.due_date)})")
+
+
+def confirm(question: str) -> bool:
+    return input(f"{question} [k/E] ").strip().lower() in ("k", "kyllä", "y", "yes")
+
+
 async def run(args: argparse.Namespace, card: str, pin: str) -> int:
     async with aiohttp.ClientSession(cookie_jar=aiohttp.CookieJar()) as session:
         if args.dump:
@@ -116,17 +170,28 @@ async def run(args: argparse.Namespace, card: str, pin: str) -> int:
             client = HelmetClient(session, card, pin, args.base_url)
         try:
             account = await client.account()
+            if args.json:
+                print(as_json(account))
+            else:
+                print_account(account)
+
+            if args.renew_all or args.renew:
+                loans = account.loans if args.renew_all else chosen_loans(account, args.renew)
+                renewable = [loan for loan in loans if loan.renewable]
+                for loan in loans:
+                    if not loan.renewable:
+                        print(f"Ei uusittavissa, ohitetaan: {loan.title}")
+                if not renewable:
+                    print("\nEi uusittavia lainoja.")
+                elif args.yes or confirm(f"\nUusitaanko {len(renewable)} lainaa?"):
+                    print_outcomes(await client.renew([loan.renew_id for loan in renewable if loan.renew_id]))
         except HelmetAuthError as err:
             print(f"Kirjasto ei hyväksynyt kortin numeroa ja PIN-koodia: {err}", file=sys.stderr)
             return 2
-        except HelmetError as err:
+        except (HelmetError, ValueError) as err:
             print(f"Virhe: {err}", file=sys.stderr)
             return 1
 
-    if args.json:
-        print(as_json(account))
-    else:
-        print_account(account)
     if args.dump:
         print(
             f"\nSivut tallennettiin kansioon {args.dump}. Niissä voi olla nimesi ja muita henkilötietoja,"
@@ -140,6 +205,10 @@ def main() -> int:
     arguments = argparse.ArgumentParser(description="Kokeile Helmet-integraation kirjautumista ja sivujen lukemista.")
     arguments.add_argument("--dump", metavar="KANSIO", help="tallenna kirjaston vastaukset tähän kansioon")
     arguments.add_argument("--json", action="store_true", help="tulosta JSONina")
+    renew = arguments.add_mutually_exclusive_group()
+    renew.add_argument("--renew-all", action="store_true", help="uusi kaikki uusittavissa olevat lainat")
+    renew.add_argument("--renew", metavar="NUMEROT", help="uusi listan lainat, esim. 1,3 tai 2-4")
+    arguments.add_argument("--yes", action="store_true", help="älä kysy vahvistusta ennen uusimista")
     arguments.add_argument("-v", "--verbose", action="store_true", help="näytä debug-loki")
     arguments.add_argument("--base-url", default=BASE_URL, help=argparse.SUPPRESS)
     args = arguments.parse_args()

@@ -22,6 +22,9 @@ RENEWED_OF = re.compile(r"Renewed\s+(\d+)\s*/\s*(\d+)", re.IGNORECASE)
 QUEUE_POSITION = re.compile(r"Queue Position:\s*(\d+)", re.IGNORECASE)
 PICKUP_NUMBER = re.compile(r"Pickup number:\s*(\S+)", re.IGNORECASE)
 EXPIRES = re.compile(r"Expires:\s*(\d{1,2}\.\d{1,2}\.\d{4})", re.IGNORECASE)
+CHECKED_OUT = re.compile(r"Checked Out:\s*(\d{1,2}\.\d{1,2}\.\d{4})", re.IGNORECASE)
+RENEW_SUCCESS = "renewal successful"
+RENEW_FAIL = "could not be renewed"
 LISTED_COUNT = re.compile(r"Checked Out Items\s*\((\d+)\)", re.IGNORECASE)
 INVALID_LOGIN = re.compile(r"invalid|incorrect|wrong|virheellinen|väärä", re.IGNORECASE)
 
@@ -43,6 +46,18 @@ class Loan:
     renewals_remaining: int | None = None
     # The id Finna's renewal form takes for the item, when it can be renewed.
     renew_id: str | None = None
+    author: str | None = None
+    format: str | None = None
+    year: str | None = None
+    issue: str | None = None
+    barcode: str | None = None
+    checkout_date: date | None = None
+    borrowing_location: str | None = None
+    # What the library says about the item, such as that someone has reserved it.
+    notices: tuple[str, ...] = ()
+    # On the page that answers a renewal: whether this item was renewed, and why not.
+    renewed: bool | None = None
+    renew_message: str | None = None
 
     @property
     def renewable(self) -> bool:
@@ -175,8 +190,112 @@ def parse_loans(page: str) -> list[Loan]:
                 break
         renew_input = row.find("input", attrs={"name": "renewSelectedIDS[]"})
         renew_id = renew_input.get("value") if isinstance(renew_input, Tag) else None
-        loans.append(Loan(title, due_date, _renewals_remaining(text), renew_id or None))
+        checkout = CHECKED_OUT.search(text)
+        renewed, renew_message, notices = _loan_alerts(row)
+        loans.append(
+            Loan(
+                title=title,
+                due_date=due_date,
+                renewals_remaining=_renewals_remaining(text),
+                renew_id=renew_id or None,
+                author=_author(row),
+                format=_format(row),
+                year=_labelled(row, "Year of Publication"),
+                issue=_labelled(row, "Issue"),
+                barcode=_labelled(row, "Barcode"),
+                checkout_date=parse_date(checkout.group(1)) if checkout else None,
+                borrowing_location=_labelled(row, "Borrowing Location"),
+                notices=notices,
+                renewed=renewed,
+                renew_message=renew_message,
+            )
+        )
     return loans
+
+
+def _loan_alerts(row: Tag) -> tuple[bool | None, str | None, tuple[str, ...]]:
+    """Splits a loan's messages into the result of a renewal and the other notices."""
+    renewed: bool | None = None
+    message: str | None = None
+    notices: list[str] = []
+    for alert in row.select(".alert"):
+        text = alert.get_text(" ", strip=True)
+        lowered = text.lower()
+        if RENEW_SUCCESS in lowered:
+            renewed = True
+        elif RENEW_FAIL in lowered:
+            renewed = False
+            # "This item could not be renewed: <reason>"
+            _, _, reason = text.partition(":")
+            message = reason.strip() or None
+        elif text:
+            notices.append(text)
+    return renewed, message, tuple(notices)
+
+
+def _labelled(row: Tag, label: str) -> str | None:
+    """The text after a bold label such as "Borrowing Location:", up to the next line break."""
+    for strong in row.find_all("strong"):
+        if strong.get_text(" ", strip=True).rstrip(":").strip().lower() != label.lower():
+            continue
+        parts: list[str] = []
+        for sibling in strong.next_siblings:
+            if isinstance(sibling, Tag) and sibling.name in ("br", "strong", "div"):
+                break
+            parts.append(sibling.get_text(" ", strip=True) if isinstance(sibling, Tag) else str(sibling))
+        value = " ".join(part.strip() for part in parts if part.strip())
+        return value or None
+    return None
+
+
+def _author(row: Tag) -> str | None:
+    metadata = row.select_one(".record-core-metadata")
+    if metadata is None:
+        return None
+    for link in metadata.find_all("a", href=True):
+        if "author" in str(link["href"]).lower():
+            return link.get_text(" ", strip=True) or None
+    return None
+
+
+def _format(row: Tag) -> str | None:
+    metadata = row.select_one(".record-core-metadata")
+    if metadata is None:
+        return None
+    element = metadata.select_one(".format, [class*='format-']")
+    if element is None:
+        return None
+    return element.get_text(" ", strip=True) or None
+
+
+@dataclass(frozen=True)
+class RenewForm:
+    """The renewal form of a loans page."""
+
+    action: str
+    csrf: str
+
+
+def renew_form(page: str, page_url: str) -> RenewForm | None:
+    """The loans page's renewal form, or None when nothing on the page can be renewed."""
+    soup = BeautifulSoup(page, "html.parser")
+    form = soup.find("form", attrs={"id": "renewals"}) or soup.find("form", attrs={"name": "renewals"})
+    if not isinstance(form, Tag):
+        return None
+    csrf = form.find("input", attrs={"name": "csrf"})
+    action = urljoin(page_url, str(form.get("action") or page_url))
+    return RenewForm(action, str(csrf.get("value") or "") if isinstance(csrf, Tag) else "")
+
+
+def page_messages(page: str) -> list[str]:
+    """The messages at the top of a page, such as "2 item(s) renewed of total 5 checked out items"."""
+    soup = BeautifulSoup(page, "html.parser")
+    messages = []
+    for alert in soup.select(".flash-message, .messages .alert"):
+        text = alert.get_text(" ", strip=True)
+        if text and text not in messages:
+            messages.append(text)
+    return messages
 
 
 def _renewals_remaining(text: str) -> int | None:

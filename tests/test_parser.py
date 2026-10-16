@@ -101,3 +101,42 @@ def test_next_page() -> None:
 def test_listed_loan_count() -> None:
     assert parser.listed_loan_count(fixture("loans.html")) == 3
     assert parser.listed_loan_count(fixture("loans_empty.html")) is None
+
+
+def test_loan_details() -> None:
+    first, second, _ = parser.parse_loans(fixture("loans.html"))
+
+    assert first.author == "Jansson, Tove"
+    assert first.format == "Book"
+    assert first.year == "1946"
+    assert first.barcode == "31234000123456"
+    assert first.checkout_date == date(2026, 10, 1)
+    assert first.borrowing_location == "Oodi"
+    assert first.notices == ()
+    assert first.renewed is None
+
+    assert second.author is None
+    assert second.notices == ("Item has holds", "Item Overdue")
+
+
+def test_renewal_answer() -> None:
+    page = fixture("loans_renewed.html")
+    first, second, third = parser.parse_loans(page)
+
+    assert first.renewed is True
+    assert first.due_date == date(2026, 11, 12)
+    assert first.notices == ()
+    assert second.renewed is None
+    assert third.renewed is False
+    assert third.renew_message == "Item has holds"
+
+    assert parser.page_messages(page) == [
+        "1 item(s) renewed of total 3 checked out items.",
+        "1 item(s) could not be renewed",
+    ]
+
+
+def test_renew_form() -> None:
+    form = parser.renew_form(fixture("loans.html"), "https://helmet.finna.fi/MyResearch/CheckedOut")
+    assert form == parser.RenewForm("https://helmet.finna.fi/MyResearch/CheckedOut", "abc")
+    assert parser.renew_form(fixture("loans_empty.html"), "https://x") is None
