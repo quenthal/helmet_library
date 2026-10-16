@@ -30,6 +30,19 @@ The account is read once an hour.
 - A notification when a hold is ready for pickup, with its pickup number
 - The family's due dates on one calendar card on the dashboard
 
+## Trying it from the console first
+
+`helmet_cli.py` logs in and reads a card's account with the integration's own code, without Home Assistant:
+
+```
+sudo apt install python3-aiohttp python3-bs4
+python3 helmet_cli.py
+```
+
+It asks for the card number and PIN (or reads `HELMET_CARD` and `HELMET_PIN`), and prints the loans, holds and fees.
+`--dump pages` also saves the pages the library answered with, which helps when something isn't read right. The saved
+pages can have your name and other personal details in them, so remove those before sharing them.
+
 ## Installation
 
 ### With HACS
