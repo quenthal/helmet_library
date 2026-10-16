@@ -1,12 +1,12 @@
 {
   "domain": "helmet",
   "name": "Helmet libraries",
-  "codeowners": [],
+  "codeowners": ["@quenthal"],
   "config_flow": true,
-  "documentation": "https://github.com/OWNER/helmet_library",
+  "documentation": "https://github.com/quenthal/helmet_library",
   "integration_type": "service",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/OWNER/helmet_library/issues",
+  "issue_tracker": "https://github.com/quenthal/helmet_library/issues",
   "requirements": ["beautifulsoup4>=4.12"],
   "version": "0.3.0"
 }

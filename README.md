@@ -92,7 +92,7 @@ pages can have your name and other personal details in them, so remove those bef
 
 ### With HACS
 
-1. Add this repository to HACS custom repositories with type **Integration**
+1. Add `https://github.com/quenthal/helmet_library` to HACS custom repositories with type **Integration**
 2. Search for Helmet libraries in HACS and download it
 3. Restart Home Assistant
 4. Add the integration in Settings › Devices & services
