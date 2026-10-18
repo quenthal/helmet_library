@@ -16,9 +16,9 @@ For each card, a device named **Helmet _name_** with:
 
 | Entity | State | Attributes |
 | --- | --- | --- |
-| Loans | Number of loans | Every loan with its title, due date, whether it is overdue, whether it can be renewed and the renewals left |
+| Loans | Number of loans | Every loan with its title, due date, days left, whether it is overdue, whether it can be renewed and the renewals left |
 | Overdue loans | Number of overdue loans | Their titles |
-| Next due date | The earliest due date (a date sensor) | The titles due that day, and whether they can all be renewed |
+| Next due date | The end (23:59) of the earliest due day, as a timestamp, so it shows as "in 3 days" | `date`, `days_left`, the titles due that day, and whether they can all be renewed |
 | Holds | Number of holds | Every hold with its status (`available`, `in_transit`, `waiting`), queue position, pickup location, last pickup day and pickup number |
 | Holds ready for pickup | Number of holds waiting at the library | The same details for those holds |
 | Fees | Unpaid fees in euros | |
@@ -64,7 +64,7 @@ automation:
             data:
               title: Kirjasto
               message: >
-                {% for loan in result.renewed %}Uusittu: {{ loan.title }}, eräpäivä {{ loan.due_date }}
+                {% for loan in result.renewed %}Uusittu: {{ loan.title }}, eräpäivä {{ strptime(loan.due_date, '%Y-%m-%d').strftime('%-d.%-m.%Y') }}
                 {% endfor %}{% for loan in result.not_renewed %}EI uusittu: {{ loan.title }} ({{ loan.reason }})
                 {% endfor %}
 ```

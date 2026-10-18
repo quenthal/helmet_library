@@ -98,6 +98,7 @@ async def test_same_card_twice(hass: HomeAssistant, login: AsyncMock) -> None:
 async def test_family_cards_and_their_entities(
     hass: HomeAssistant, account: AsyncMock, freezer: FrozenDateTimeFactory
 ) -> None:
+    await hass.config.async_set_time_zone("Europe/Helsinki")
     freezer.move_to(datetime(2026, 10, 16, 12, tzinfo=dt_util.get_default_time_zone()))
     liisa, matti = entry("111", "Liisa"), entry("222", "Matti")
     for card in (liisa, matti):
@@ -116,8 +117,13 @@ async def test_family_cards_and_their_entities(
 
     assert hass.states.get("sensor.helmet_liisa_overdue_loans").state == "1"
     next_due = hass.states.get("sensor.helmet_liisa_next_due_date")
-    assert next_due.state == "2026-10-09"
+    # 9 October 23:59 in Helsinki, which is 20:59 UTC in summer time.
+    assert next_due.state == "2026-10-09T20:59:00+00:00"
+    assert next_due.attributes["device_class"] == "timestamp"
+    assert next_due.attributes["date"] == "2026-10-09"
+    assert next_due.attributes["days_left"] == -7
     assert next_due.attributes["titles"] == ["Tuntematon sotilas"]
+    assert loans.attributes["loans"][1]["days_left"] == 6
     assert hass.states.get("sensor.helmet_liisa_holds").state == "3"
     ready = hass.states.get("sensor.helmet_liisa_holds_ready_for_pickup")
     assert ready.state == "1"

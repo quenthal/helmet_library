@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, time
 from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription
@@ -29,6 +29,7 @@ def loan_details(loan: Loan, today: date) -> dict[str, Any]:
     return {
         "title": loan.title,
         "due_date": loan.due_date.isoformat() if loan.due_date else None,
+        "days_left": (loan.due_date - today).days if loan.due_date else None,
         "overdue": loan.overdue(today),
         "renewable": loan.renewable,
         "renewals_remaining": loan.renewals_remaining,
@@ -62,10 +63,22 @@ def next_due_date(account: Account, today: date) -> date | None:
     return min(dates) if dates else None
 
 
+def due_moment(day: date) -> datetime:
+    """The last minute of a due day: a loan is overdue only after it, as the web library says."""
+    return datetime.combine(day, DUE_TIME, tzinfo=dt_util.get_default_time_zone())
+
+
+def next_due_moment(account: Account, today: date) -> datetime | None:
+    due = next_due_date(account, today)
+    return due_moment(due) if due else None
+
+
 def next_due_attributes(account: Account, today: date) -> dict[str, Any]:
     due = next_due_date(account, today)
     loans = [loan for loan in account.loans if due is not None and loan.due_date == due]
     return {
+        "date": due.isoformat() if due else None,
+        "days_left": (due - today).days if due else None,
         "titles": [loan.title for loan in loans],
         "count": len(loans),
         "renewable": all(loan.renewable for loan in loans) if loans else None,
@@ -79,6 +92,10 @@ def available_holds(account: Account) -> list[Hold]:
 
 def fines_euros(account: Account, today: date) -> float | None:
     return None if account.fines_cents is None else account.fines_cents / 100
+
+
+# Loans are due by the end of the day.
+DUE_TIME = time(23, 59)
 
 
 SENSORS: tuple[HelmetSensorDescription, ...] = (
@@ -96,8 +113,9 @@ SENSORS: tuple[HelmetSensorDescription, ...] = (
     ),
     HelmetSensorDescription(
         key="next_due_date",
-        device_class=SensorDeviceClass.DATE,
-        value=next_due_date,
+        # A timestamp rather than a date, so that the frontend tells it as "in 3 days" or "tomorrow".
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value=next_due_moment,
         attributes=next_due_attributes,
     ),
     HelmetSensorDescription(
