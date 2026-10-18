@@ -5,10 +5,10 @@ from __future__ import annotations
 from homeassistant.components.button import ButtonEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.util import dt as dt_util
 
 from .coordinator import HelmetConfigEntry, HelmetCoordinator
 from .entity import HelmetEntity
+from .library_time import library_today
 from .renewal import async_renew, loans_to_renew
 
 
@@ -26,5 +26,5 @@ class RenewAllButton(HelmetEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         await async_renew(
-            self.hass, self.coordinator.config_entry, lambda loans: loans_to_renew(loans, dt_util.now().date())
+            self.hass, self.coordinator.config_entry, lambda loans: loans_to_renew(loans, library_today())
         )

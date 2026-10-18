@@ -24,10 +24,11 @@ import os
 import sys
 import types
 from dataclasses import asdict
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
+from zoneinfo import ZoneInfo
 
 import aiohttp
 
@@ -67,6 +68,11 @@ class DumpingClient(HelmetClient):
         path.write_text(content, encoding="utf-8")
 
 
+def library_today() -> date:
+    """Today in Helsinki, where the library's due dates are, whatever the computer's own time zone."""
+    return datetime.now(ZoneInfo("Europe/Helsinki")).date()
+
+
 def fmt(day: date | None) -> str:
     return day.strftime("%d.%m.%Y") if day else "?"
 
@@ -77,7 +83,7 @@ def sorted_loans(loans: list[Loan]) -> list[Loan]:
 
 
 def print_account(account: Account) -> None:
-    today = date.today()
+    today = library_today()
     print(f"\nLainat ({len(account.loans)}):")
     for number, loan in enumerate(sorted_loans(account.loans), start=1):
         late = "  MYÖHÄSSÄ" if loan.overdue(today) else ""

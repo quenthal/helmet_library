@@ -7,11 +7,11 @@ from typing import Any
 from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.util import dt as dt_util
 
 from .attention import Attention, attention
 from .coordinator import HelmetConfigEntry, HelmetCoordinator
 from .entity import HelmetEntity
+from .library_time import library_today
 
 
 async def async_setup_entry(
@@ -27,7 +27,7 @@ class AttentionSensor(HelmetEntity, BinarySensorEntity):
         super().__init__(coordinator, "attention")
 
     def _attention(self) -> Attention:
-        return attention(self.coordinator.data, dt_util.now().date())
+        return attention(self.coordinator.data, library_today())
 
     @property
     def is_on(self) -> bool:

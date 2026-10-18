@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from unittest.mock import AsyncMock, patch
+from zoneinfo import ZoneInfo
 
 import pytest
 from freezegun.api import FrozenDateTimeFactory
@@ -11,7 +12,6 @@ from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.helmet.api import HelmetAuthError, HelmetError
@@ -98,8 +98,9 @@ async def test_same_card_twice(hass: HomeAssistant, login: AsyncMock) -> None:
 async def test_family_cards_and_their_entities(
     hass: HomeAssistant, account: AsyncMock, freezer: FrozenDateTimeFactory
 ) -> None:
-    await hass.config.async_set_time_zone("Europe/Helsinki")
-    freezer.move_to(datetime(2026, 10, 16, 12, tzinfo=dt_util.get_default_time_zone()))
+    # Home Assistant somewhere else than the library: the due dates still are days in Helsinki.
+    await hass.config.async_set_time_zone("America/New_York")
+    freezer.move_to(datetime(2026, 10, 16, 12, tzinfo=ZoneInfo("Europe/Helsinki")))
     liisa, matti = entry("111", "Liisa"), entry("222", "Matti")
     for card in (liisa, matti):
         card.add_to_hass(hass)
@@ -187,3 +188,16 @@ async def test_reauth_updates_pin(hass: HomeAssistant, login: AsyncMock, account
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reauth_successful"
     assert card.data[CONF_PIN] == "9999"
+
+
+async def test_today_is_helsinki_today(hass: HomeAssistant, account: AsyncMock, freezer: FrozenDateTimeFactory) -> None:
+    """At 1:30 on 10 October in Helsinki it is still 9 October in New York, but the loan due 9 October is overdue."""
+    await hass.config.async_set_time_zone("America/New_York")
+    freezer.move_to(datetime(2026, 10, 10, 1, 30, tzinfo=ZoneInfo("Europe/Helsinki")))
+    card = entry()
+    card.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(card.entry_id)
+    await hass.async_block_till_done()
+
+    assert hass.states.get("sensor.helmet_liisa_overdue_loans").state == "1"
+    assert hass.states.get("sensor.helmet_liisa_next_due_date").attributes["days_left"] == -1

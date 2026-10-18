@@ -16,6 +16,7 @@ from homeassistant.helpers.typing import ConfigType
 from .api import HelmetClient
 from .const import CONF_CARD_NUMBER, CONF_PIN, DOMAIN
 from .coordinator import HelmetConfigEntry, HelmetCoordinator
+from .library_time import async_load_time_zone
 from .services import async_setup_services
 
 PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.CALENDAR, Platform.SENSOR]
@@ -23,7 +24,8 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Registers the actions, which work on any of the cards."""
+    """Loads the library's time zone, and registers the actions, which work on any of the cards."""
+    await async_load_time_zone()
     async_setup_services(hass)
     return True
 

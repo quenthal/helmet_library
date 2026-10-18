@@ -4,16 +4,16 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date, datetime
 from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.util import dt as dt_util
 
 from .coordinator import HelmetConfigEntry, HelmetCoordinator
 from .entity import HelmetEntity
+from .library_time import due_moment, library_today
 from .parser import Account, Hold, HoldStatus, Loan
 
 
@@ -63,11 +63,6 @@ def next_due_date(account: Account, today: date) -> date | None:
     return min(dates) if dates else None
 
 
-def due_moment(day: date) -> datetime:
-    """The last minute of a due day: a loan is overdue only after it, as the web library says."""
-    return datetime.combine(day, DUE_TIME, tzinfo=dt_util.get_default_time_zone())
-
-
 def next_due_moment(account: Account, today: date) -> datetime | None:
     due = next_due_date(account, today)
     return due_moment(due) if due else None
@@ -92,10 +87,6 @@ def available_holds(account: Account) -> list[Hold]:
 
 def fines_euros(account: Account, today: date) -> float | None:
     return None if account.fines_cents is None else account.fines_cents / 100
-
-
-# Loans are due by the end of the day.
-DUE_TIME = time(23, 59)
 
 
 SENSORS: tuple[HelmetSensorDescription, ...] = (
@@ -155,10 +146,10 @@ class HelmetSensor(HelmetEntity, SensorEntity):
 
     @property
     def native_value(self) -> Any:
-        return self.entity_description.value(self.coordinator.data, dt_util.now().date())
+        return self.entity_description.value(self.coordinator.data, library_today())
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         if self.entity_description.attributes is None:
             return None
-        return self.entity_description.attributes(self.coordinator.data, dt_util.now().date())
+        return self.entity_description.attributes(self.coordinator.data, library_today())

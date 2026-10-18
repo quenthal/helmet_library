@@ -7,10 +7,10 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
-from homeassistant.util import dt as dt_util
 
 from .const import ATTR_CONFIG_ENTRY_ID, ATTR_DUE_WITHIN_DAYS, ATTR_TITLES, DOMAIN, SERVICE_RENEW_LOANS
 from .coordinator import HelmetConfigEntry
+from .library_time import library_today
 from .parser import Loan
 from .renewal import async_renew, loans_to_renew
 
@@ -40,7 +40,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
         def choose(loans: list[Loan]) -> list[Loan]:
             return loans_to_renew(
                 loans,
-                dt_util.now().date(),
+                library_today(),
                 titles=call.data.get(ATTR_TITLES),
                 due_within_days=call.data.get(ATTR_DUE_WITHIN_DAYS),
             )

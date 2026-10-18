@@ -8,10 +8,10 @@ from datetime import date, datetime, timedelta
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.util import dt as dt_util
 
 from .coordinator import HelmetConfigEntry, HelmetCoordinator
 from .entity import HelmetEntity
+from .library_time import library_today
 from .parser import Account, HoldStatus
 
 # The calendar's events are made in code, so their texts are here rather than in the translations.
@@ -89,7 +89,7 @@ class HelmetCalendar(HelmetEntity, CalendarEntity):
     @property
     def event(self) -> CalendarEvent | None:
         """The next event: today's or a later one."""
-        today = dt_util.now().date()
+        today = library_today()
         return next((event for event in self._events() if event.end > today), None)
 
     async def async_get_events(
