@@ -144,7 +144,7 @@ class HelmetClient:
         outcomes = []
         for renew_id in ids:
             loan = renewable[renew_id]
-            result = next((row for row in results if row.title == loan.title), None)
+            result = next((row for row in results if _same_item(row, loan)), None)
             if result is not None:
                 results.remove(result)
                 outcomes.append(RenewOutcome(loan.title, bool(result.renewed), result.due_date, result.renew_message))
@@ -155,7 +155,7 @@ class HelmetClient:
                 except _SessionEnded as err:
                     # Not retried: the renewal has been sent, and sending it again would use another renewal.
                     raise HelmetError("The library ended the session before the renewal could be checked") from err
-            now = next((row for row in after if row.title == loan.title), None)
+            now = next((row for row in after if _same_item(row, loan)), None)
             due = now.due_date if now else None
             renewed = due is not None and loan.due_date is not None and due > loan.due_date
             outcomes.append(RenewOutcome(loan.title, renewed, due or loan.due_date))
@@ -244,6 +244,18 @@ class HelmetClient:
     @staticmethod
     def _params(params: dict[str, str] | None) -> dict[str, str]:
         return {**(params or {}), "lng": LANGUAGE}
+
+
+def _same_item(row: Loan, loan: Loan) -> bool:
+    """Whether a row of a later page is the same item as the loan.
+
+    The title alone isn't enough: a family can have several issues of the same magazine.
+    """
+    if row.renew_id and loan.renew_id:
+        return row.renew_id == loan.renew_id
+    if row.barcode and loan.barcode:
+        return row.barcode == loan.barcode
+    return (row.title, row.issue) == (loan.title, loan.issue)
 
 
 class _SessionEnded(Exception):

@@ -209,6 +209,36 @@ async def test_renew_checks_loans_missing_from_the_answer() -> None:
     ]
 
 
+class SameTitles(FakeLibrary):
+    """Two issues of the same magazine: the first and the third loan have the same title."""
+
+    def _answer(self, method: str, url: str, kwargs: dict[str, Any]) -> FakeResponse:
+        answer = super()._answer(method, url, kwargs)
+        answer._body = answer._body.replace("Ronja Ryövärintytär", "Muumipeikko ja pyrstötähti")
+        return answer
+
+
+async def test_renew_tells_apart_loans_with_the_same_title() -> None:
+    # Only the third is renewed, and it fails; the first, renewed earlier, shows its success on the same page.
+    outcomes = await client(SameTitles()).renew(["i1003|b2003"])
+
+    assert outcomes == [RenewOutcome("Muumipeikko ja pyrstötähti", False, date(2026, 10, 22), "Item has holds")]
+
+
+async def test_renew_checks_the_right_one_of_loans_with_the_same_title() -> None:
+    class Quiet(SameTitles):
+        def _answer(self, method: str, url: str, kwargs: dict[str, Any]) -> FakeResponse:
+            answer = super()._answer(method, url, kwargs)
+            if method == "POST" and urlparse(url).path == "/MyResearch/CheckedOut":
+                return FakeResponse(200, fixture("loans_empty.html"))
+            return answer
+
+    # Afterwards the first one's due date has moved, but the third one's hasn't.
+    outcomes = await client(Quiet()).renew(["i1003|b2003"])
+
+    assert [(outcome.renewed, outcome.due_date) for outcome in outcomes] == [(False, date(2026, 10, 22))]
+
+
 async def test_renew_rejects_loans_that_cant_be_renewed() -> None:
     library = FakeLibrary()
     with pytest.raises(HelmetError):
