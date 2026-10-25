@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from homeassistant.const import MATCH_ALL
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -13,6 +14,9 @@ class HelmetEntity(CoordinatorEntity[HelmetCoordinator]):
     """An entity of one library card."""
 
     _attr_has_entity_name = True
+    # The attributes list every loan and hold, and change daily as the days left count down. Only the
+    # states go to the history, so that a long loan list doesn't fill the database.
+    _unrecorded_attributes = frozenset({MATCH_ALL})
 
     def __init__(self, coordinator: HelmetCoordinator, key: str) -> None:
         super().__init__(coordinator)
