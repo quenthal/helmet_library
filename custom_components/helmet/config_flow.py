@@ -7,12 +7,28 @@ from collections.abc import Mapping
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
-from homeassistant.helpers.selector import TextSelector, TextSelectorConfig, TextSelectorType
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
+from homeassistant.core import callback
+from homeassistant.helpers.selector import (
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
+)
 
 from . import create_client
 from .api import HelmetAuthError, HelmetError
-from .const import CONF_CARD_NUMBER, CONF_NAME, CONF_PIN, DOMAIN
+from .const import (
+    CONF_CARD_NUMBER,
+    CONF_NAME,
+    CONF_PIN,
+    CONF_RENEW_WITHIN_DAYS,
+    DEFAULT_RENEW_WITHIN_DAYS,
+    DOMAIN,
+    MAX_RENEW_WITHIN_DAYS,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,6 +42,15 @@ USER_SCHEMA = vol.Schema(
     }
 )
 REAUTH_SCHEMA = vol.Schema({vol.Required(CONF_PIN): PASSWORD})
+OPTIONS_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_RENEW_WITHIN_DAYS, default=DEFAULT_RENEW_WITHIN_DAYS): NumberSelector(
+            NumberSelectorConfig(
+                min=0, max=MAX_RENEW_WITHIN_DAYS, step=1, mode=NumberSelectorMode.BOX, unit_of_measurement="days"
+            )
+        ),
+    }
+)
 
 
 def normalized_card_number(card_number: str) -> str:
@@ -37,6 +62,11 @@ class HelmetConfigFlow(ConfigFlow, domain=DOMAIN):
     """One flow per library card."""
 
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> HelmetOptionsFlow:
+        return HelmetOptionsFlow()
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
@@ -87,3 +117,17 @@ class HelmetConfigFlow(ConfigFlow, domain=DOMAIN):
             _LOGGER.debug("Login check failed: %s", err)
             return "cannot_connect"
         return None
+
+
+class HelmetOptionsFlow(OptionsFlow):
+    """How many days before the due date the button renews a loan."""
+
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        if user_input is not None:
+            return self.async_create_entry(
+                data={**user_input, CONF_RENEW_WITHIN_DAYS: int(user_input[CONF_RENEW_WITHIN_DAYS])}
+            )
+        return self.async_show_form(
+            step_id="init",
+            data_schema=self.add_suggested_values_to_schema(OPTIONS_SCHEMA, self.config_entry.options),
+        )

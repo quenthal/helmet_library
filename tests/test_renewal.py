@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+from dataclasses import replace
 from datetime import date, datetime
 from unittest.mock import AsyncMock, patch
 
@@ -13,8 +15,9 @@ from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import async_capture_events
 
 from custom_components.helmet.api import HelmetError, RenewOutcome
-from custom_components.helmet.const import DOMAIN, EVENT_LOANS_RENEWED
-from custom_components.helmet.renewal import loans_to_renew
+from custom_components.helmet.const import CONF_RENEW_WITHIN_DAYS, DOMAIN, EVENT_LOANS_RENEWED
+from custom_components.helmet.parser import Account
+from custom_components.helmet.renewal import async_renew, loans_to_renew
 
 from .test_init import ACCOUNT, entry
 
@@ -49,12 +52,25 @@ async def card(hass: HomeAssistant, freezer: FrozenDateTimeFactory):
         yield card
 
 
-async def test_button_renews_all(hass: HomeAssistant, card) -> None:
+BUTTON = "button.helmet_liisa_renew_loans_due_soon"
+
+
+async def press(hass: HomeAssistant) -> None:
+    await hass.services.async_call("button", "press", target={"entity_id": BUTTON}, blocking=True)
+
+
+async def test_button_leaves_loans_not_due_soon(hass: HomeAssistant, card) -> None:
+    # Both renewable loans are due in 6 days, and the button renews those due within 3.
+    with patch("custom_components.helmet.api.HelmetClient.renew", AsyncMock()) as renew:
+        await press(hass)
+    renew.assert_not_awaited()
+
+
+async def test_button_renews_loans_due_soon(hass: HomeAssistant, card) -> None:
+    hass.config_entries.async_update_entry(card, options={CONF_RENEW_WITHIN_DAYS: 6})
     events = async_capture_events(hass, EVENT_LOANS_RENEWED)
     with patch("custom_components.helmet.api.HelmetClient.renew", AsyncMock(return_value=OUTCOMES)) as renew:
-        await hass.services.async_call(
-            "button", "press", target={"entity_id": "button.helmet_liisa_renew_all_loans"}, blocking=True
-        )
+        await press(hass)
 
     renew.assert_awaited_once_with(["i1|b1", "i3|b3"])
     assert len(events) == 1
@@ -63,6 +79,42 @@ async def test_button_renews_all(hass: HomeAssistant, card) -> None:
     assert events[0].data["not_renewed"] == [
         {"title": "Ronja Ryövärintytär", "due_date": "2026-10-22", "reason": "Item has holds"}
     ]
+
+
+async def test_renewals_of_a_card_wait_for_each_other(hass: HomeAssistant, freezer: FrozenDateTimeFactory) -> None:
+    """The second of two renewals at once chooses from the loans as the first left them."""
+    freezer.move_to(datetime(2026, 10, 20, 8, tzinfo=dt_util.get_default_time_zone()))
+    renewed = Account(loans=[replace(loan, due_date=date(2026, 11, 17)) for loan in ACCOUNT.loans])
+    done = False
+
+    # Both wait on the library, so that the two renewals could interleave.
+    async def account(self: object) -> Account:
+        await asyncio.sleep(0)
+        return renewed if done else ACCOUNT
+
+    async def slow_renew(ids: list[str]) -> list[RenewOutcome]:
+        nonlocal done
+        for _ in range(5):
+            await asyncio.sleep(0)
+        done = True
+        return OUTCOMES
+
+    renew = AsyncMock(side_effect=slow_renew)
+    with (
+        patch("custom_components.helmet.api.HelmetClient.account", account),
+        patch("custom_components.helmet.api.HelmetClient.renew", renew),
+    ):
+        card = entry()
+        card.add_to_hass(hass)
+        assert await hass.config_entries.async_setup(card.entry_id)
+        await hass.async_block_till_done()
+
+        def due_soon(loans: list) -> list:
+            return loans_to_renew(loans, date(2026, 10, 20), due_within_days=3)
+
+        await asyncio.gather(async_renew(hass, card, due_soon), async_renew(hass, card, due_soon))
+
+    assert renew.await_count == 1
 
 
 async def test_action_renews_matching_loans(hass: HomeAssistant, card) -> None:

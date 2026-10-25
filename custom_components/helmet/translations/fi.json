@@ -30,6 +30,19 @@
       "reauth_successful": "PIN-koodi päivitettiin."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Uusiminen",
+        "data": {
+          "renew_within_days": "Uusi lainat, jotka erääntyvät"
+        },
+        "data_description": {
+          "renew_within_days": "Uusi pian erääntyvät lainat -painike uusii uusittavissa olevat lainat, jotka erääntyvät näin monen päivän sisällä, myös myöhässä olevat. Jokainen uusinta käyttää yhden niteen uusintakerroista, joten kauan ennen eräpäivää tehty uusinta menee hukkaan. 0 on tänään."
+        }
+      }
+    }
+  },
   "entity": {
     "calendar": {
       "calendar": {
@@ -57,8 +70,8 @@
       }
     },
     "button": {
-      "renew_all": {
-        "name": "Uusi kaikki lainat"
+      "renew_due_soon": {
+        "name": "Uusi pian erääntyvät lainat"
       }
     },
     "binary_sensor": {

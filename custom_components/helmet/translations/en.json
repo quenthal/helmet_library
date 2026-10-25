@@ -30,6 +30,19 @@
       "reauth_successful": "The PIN was updated."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Renewing",
+        "data": {
+          "renew_within_days": "Renew loans due within"
+        },
+        "data_description": {
+          "renew_within_days": "The Renew loans due soon button renews the loans that can be renewed and are due within this many days, overdue ones included. Each renewal uses up one of the item's renewals, so a renewal long before the due date wastes it. 0 is today."
+        }
+      }
+    }
+  },
   "entity": {
     "calendar": {
       "calendar": {
@@ -57,8 +70,8 @@
       }
     },
     "button": {
-      "renew_all": {
-        "name": "Renew all loans"
+      "renew_due_soon": {
+        "name": "Renew loans due soon"
       }
     },
     "binary_sensor": {

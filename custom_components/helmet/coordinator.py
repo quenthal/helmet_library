@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from homeassistant.config_entries import ConfigEntry
@@ -32,6 +33,8 @@ class HelmetCoordinator(DataUpdateCoordinator[Account]):
             update_interval=UPDATE_INTERVAL,
         )
         self.client = client
+        # Held for the whole of a renewal, from choosing the loans to reading them again.
+        self.renew_lock = asyncio.Lock()
 
     async def _async_update_data(self) -> Account:
         try:

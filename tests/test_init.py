@@ -12,10 +12,11 @@ from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.helmet.api import HelmetAuthError, HelmetError
-from custom_components.helmet.const import CONF_CARD_NUMBER, CONF_NAME, CONF_PIN, DOMAIN
+from custom_components.helmet.const import CONF_CARD_NUMBER, CONF_NAME, CONF_PIN, CONF_RENEW_WITHIN_DAYS, DOMAIN
 from custom_components.helmet.parser import Account, Hold, HoldStatus, Loan
 
 ACCOUNT = Account(
@@ -201,3 +202,33 @@ async def test_today_is_helsinki_today(hass: HomeAssistant, account: AsyncMock, 
 
     assert hass.states.get("sensor.helmet_liisa_overdue_loans").state == "1"
     assert hass.states.get("sensor.helmet_liisa_next_due_date").attributes["days_left"] == -1
+
+
+async def test_options(hass: HomeAssistant, account: AsyncMock) -> None:
+    card = entry()
+    card.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(card.entry_id)
+
+    result = await hass.config_entries.options.async_init(card.entry_id)
+    assert result["type"] is FlowResultType.FORM
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {CONF_RENEW_WITHIN_DAYS: 5.0})
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert card.options == {CONF_RENEW_WITHIN_DAYS: 5}
+
+
+async def test_renamed_button_keeps_its_entity(hass: HomeAssistant, account: AsyncMock) -> None:
+    """The "Renew all loans" button of 0.4 keeps its entity id, so that the automations using it keep working."""
+    card = entry()
+    card.add_to_hass(hass)
+    registry = er.async_get(hass)
+    old = registry.async_get_or_create(
+        "button", DOMAIN, "12345678_renew_all", config_entry=card, suggested_object_id="helmet_liisa_renew_all_loans"
+    )
+
+    assert await hass.config_entries.async_setup(card.entry_id)
+    await hass.async_block_till_done()
+
+    assert registry.async_get(old.entity_id).unique_id == "12345678_renew_due_soon"
+    assert hass.states.get("button.helmet_liisa_renew_all_loans") is not None
+    assert hass.states.get("button.helmet_liisa_renew_loans_due_soon") is None

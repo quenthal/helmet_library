@@ -22,13 +22,18 @@ LOGIN_TARGET_HINT: Final = "helmet"
 CONF_CARD_NUMBER: Final = "card_number"
 CONF_PIN: Final = "pin"
 CONF_NAME: Final = "name"
+# The button renews the loans due within this many days, overdue ones included.
+CONF_RENEW_WITHIN_DAYS: Final = "renew_within_days"
+DEFAULT_RENEW_WITHIN_DAYS: Final = 3
+# Shorter than a loan period, so that a renewed loan is no longer due soon and pressing again does nothing.
+MAX_RENEW_WITHIN_DAYS: Final = 14
 
 UPDATE_INTERVAL: Final = timedelta(hours=1)
 REQUEST_TIMEOUT: Final = 30
 # A loan list longer than this many pages is cut, to keep a broken page from looping.
 MAX_PAGES: Final = 10
 
-USER_AGENT: Final = "Mozilla/5.0 (compatible; HomeAssistant-Helmet/0.1; +https://www.home-assistant.io)"
+USER_AGENT: Final = "Mozilla/5.0 (compatible; HomeAssistant-Helmet; +https://github.com/quenthal/helmet_library)"
 
 SERVICE_RENEW_LOANS: Final = "renew_loans"
 ATTR_CONFIG_ENTRY_ID: Final = "config_entry_id"
