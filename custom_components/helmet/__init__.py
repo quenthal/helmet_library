@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import aiohttp
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.typing import ConfigType
 
@@ -41,12 +42,29 @@ def create_client(hass: HomeAssistant, card_number: str, pin: str) -> HelmetClie
 
 async def async_setup_entry(hass: HomeAssistant, entry: HelmetConfigEntry) -> bool:
     """Sets up one library card."""
+    await _async_migrate_unique_ids(hass, entry)
     client = create_client(hass, entry.data[CONF_CARD_NUMBER], entry.data[CONF_PIN])
     coordinator = HelmetCoordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
+
+
+async def _async_migrate_unique_ids(hass: HomeAssistant, entry: HelmetConfigEntry) -> None:
+    """Keeps the entities of renamed keys, with their entity ids and the automations that use them.
+
+    The "Renew all loans" button became "Renew loans due soon" in 0.5.
+    """
+    renamed = {f"{entry.unique_id}_renew_all": f"{entry.unique_id}_renew_due_soon"}
+
+    @callback
+    def migrate(entity: er.RegistryEntry) -> dict[str, str] | None:
+        if entity.unique_id in renamed:
+            return {"new_unique_id": renamed[entity.unique_id]}
+        return None
+
+    await er.async_migrate_entries(hass, entry.entry_id, migrate)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: HelmetConfigEntry) -> bool:

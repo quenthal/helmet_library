@@ -1,7 +1,7 @@
 {
   "entity": {
     "button": {
-      "renew_all": {
+      "renew_due_soon": {
         "default": "mdi:book-refresh"
       }
     },

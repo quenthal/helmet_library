@@ -24,18 +24,26 @@ For each card, a device named **Helmet _name_** with:
 | Fees | Unpaid fees in euros | |
 | Needs attention (binary sensor) | On when a loan is overdue, a loan that can't be renewed is due today or tomorrow, a hold is ready for pickup, or there are unpaid fees | `reasons`, and the titles for each reason |
 | Due dates (calendar) | | An all-day event for each due date, and for the last pickup day of each hold ready for pickup |
-| Renew all loans (button) | | Renews every loan of the card that can be renewed |
+| Renew loans due soon (button) | | Renews the loans that can be renewed and are due within 3 days |
 
 The account is read once an hour, and again right before a renewal.
 
+Home Assistant's history keeps only the states of these entities, not their attributes, so that a long list of
+loans doesn't fill the database.
+
 ### Renewing loans
 
-The **Renew all loans** button renews every loan that can be renewed. For more choice, the
-`helmet.renew_loans` action renews a card's loans that match:
+The **Renew loans due soon** button renews the loans that can be renewed and are due within 3 days, overdue ones
+included. Each renewal uses up one of the item's renewals, and renewing long before the due date wastes one, so the
+button leaves the other loans as they are. A loan just renewed is no longer due soon, so pressing the button again
+doesn't renew it again. The number of days can be changed, from 0 (today) to 14, in the card's **Configure** on the
+integration page.
+
+For more choice, the `helmet.renew_loans` action renews a card's loans that match, or all of them:
 
 | Field | |
 | --- | --- |
-| `config_entry_id` | The card |
+| `config_entry_id` | The card. In the action editor, pick the card from the list, and the editor fills this in. |
 | `titles` | Only the loans with any of these in their title (optional) |
 | `due_within_days` | Only the loans due within this many days (optional) |
 
@@ -133,6 +141,10 @@ The integration reads the account, and renews loans when asked to. It doesn't pl
   Loans sensor stops matching the web library, the log has a warning about it.
 - Helmet is changing its library system in 2026–2027. The web library stays on Finna, which should keep the
   integration working, but a break around the change is possible.
+
+When something isn't read right, the card's **Download diagnostics** on the integration page tells what the
+integration read: the due dates, statuses and counts, and which details it found. It leaves out the card number,
+PIN and name, and the titles, authors, places and codes of the loans and holds, so it can be attached to an issue.
 
 ## Development
 

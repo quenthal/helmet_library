@@ -3,6 +3,8 @@ name: Validate
 on:
   push:
   pull_request:
+  # The release runs these first.
+  workflow_call:
 
 jobs:
   tests:

@@ -55,8 +55,17 @@ async def async_renew(
 ) -> dict[str, Any]:
     """Renews the loans chosen from the card's current loans, and fires an event with the outcomes.
 
-    The loans are read again first, since the entities' copy can be an hour old.
+    The loans are read again first, since the entities' copy can be an hour old. Renewals of a card
+    wait for each other, so that the second of two presses chooses from the loans the first renewed.
     """
+    coordinator = entry.runtime_data
+    async with coordinator.renew_lock:
+        return await _async_renew(hass, entry, choose)
+
+
+async def _async_renew(
+    hass: HomeAssistant, entry: HelmetConfigEntry, choose: Callable[[list[Loan]], list[Loan]]
+) -> dict[str, Any]:
     coordinator = entry.runtime_data
     await coordinator.async_refresh()
     if not coordinator.last_update_success:
