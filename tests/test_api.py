@@ -12,6 +12,7 @@ import aiohttp
 import pytest
 
 from custom_components.helmet.api import HelmetAuthError, HelmetClient, HelmetError, RenewOutcome
+from custom_components.helmet.const import USER_AGENT
 
 from . import fixture
 
@@ -136,6 +137,19 @@ async def test_server_error() -> None:
     library.fail_with = 503
     with pytest.raises(HelmetError):
         await client(library).account()
+
+
+async def test_refused_by_the_firewall() -> None:
+    """A 403 without a login form tells that the request was refused, not that the page had no form."""
+    library = FakeLibrary()
+    library.fail_with = 403
+    with pytest.raises(HelmetError, match="403"):
+        await client(library).login()
+
+
+def test_user_agent_has_no_github_address() -> None:
+    # The web library's firewall refuses the login page to it, and the integration can't log in at all.
+    assert "github" not in USER_AGENT.lower()
 
 
 async def test_reads_every_page_of_loans() -> None:

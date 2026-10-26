@@ -33,7 +33,9 @@ REQUEST_TIMEOUT: Final = 30
 # A loan list longer than this many pages is cut, to keep a broken page from looping.
 MAX_PAGES: Final = 10
 
-USER_AGENT: Final = "Mozilla/5.0 (compatible; HomeAssistant-Helmet; +https://github.com/quenthal/helmet_library)"
+# The web library's firewall refuses the login page to a user agent with a GitHub address in it (403 Forbidden),
+# so this one keeps to the address it has always had.
+USER_AGENT: Final = "Mozilla/5.0 (compatible; HomeAssistant-Helmet/0.1; +https://www.home-assistant.io)"
 
 SERVICE_RENEW_LOANS: Final = "renew_loans"
 ATTR_CONFIG_ENTRY_ID: Final = "config_entry_id"

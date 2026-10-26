@@ -237,7 +237,11 @@ class HelmetClient:
                 if response.status >= 500:
                     raise HelmetError(f"The library answered {response.status}")
                 # Finna answers some refused requests with 4xx and the login form; the caller reads the page.
-                return await response.text()
+                page = await response.text()
+                if response.status == 403 and not parser.is_login_page(page):
+                    # The firewall in front of the web library, rather than the library itself.
+                    raise HelmetError("The web library refused the request (403 Forbidden)")
+                return page
         except (aiohttp.ClientError, TimeoutError) as err:
             raise HelmetError(f"Couldn't reach the library: {err}") from err
 
