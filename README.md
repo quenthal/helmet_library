@@ -158,6 +158,10 @@ ruff check . && ruff format --check .
 The parser follows the templates of Finna ([NDL-VuFind2](https://github.com/NatLibFi/NDL-VuFind2), theme `finna2`),
 and the test pages in `tests/fixtures` are built after them.
 
+Versions are _year.month.number_, the number counting that month's releases from 1: the first release of
+November 2026 is 2026.11.1, and the next one 2026.11.2. Raising the version in `manifest.json` on `main` releases
+it, once the tests pass.
+
 ## Disclaimer
 
 This is an independent, unofficial project. It is not affiliated with, endorsed, sponsored or supported by Helmet,
