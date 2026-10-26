@@ -1,6 +1,6 @@
 {
   "domain": "helmet",
-  "name": "Helmet libraries",
+  "name": "Helmet-kirjasto",
   "codeowners": ["@quenthal"],
   "config_flow": true,
   "documentation": "https://github.com/quenthal/helmet_library",
@@ -8,5 +8,5 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/quenthal/helmet_library/issues",
   "requirements": ["beautifulsoup4>=4.12"],
-  "version": "2026.10.3"
+  "version": "2026.10.4"
 }
