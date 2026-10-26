@@ -1,14 +1,15 @@
 # Helmet libraries for Home Assistant
 
-<img src="custom_components/helmet/brand/icon.png" width="96" alt="An open book with a bookmark" align="right">
+<img src="custom_components/helmet/brand/icon.png" width="96" alt="The Helmet logo" align="right">
 
 Home Assistant integration that follows the loans, holds and fees of a Helmet library card
 (the libraries of Helsinki, Espoo, Vantaa and Kauniainen).
 
 Each library card is its own entry, so a family adds the integration once for each member's card.
 
-This is an unofficial integration. Helmet has no public API for a patron's own account, so the integration reads
-the same pages of the [Helmet web library](https://helmet.finna.fi) that a browser shows.
+This is an unofficial integration, not made, endorsed or supported by Helmet (see [Disclaimer](#disclaimer)). Helmet
+has no public API for a patron's own account, so the integration reads the same pages of the
+[Helmet web library](https://helmet.finna.fi) that a browser shows.
 
 ## What you get
 
@@ -112,8 +113,8 @@ pages can have your name and other personal details in them, so remove those bef
 Copy the `custom_components/helmet` folder to your Home Assistant installation's `config/custom_components` folder
 and restart Home Assistant.
 
-The integration's icon shows in Home Assistant 2026.3 and later. It is drawn for this integration (source in
-`docs/icon.svg`) and is not Helmet's logo.
+The integration's icon shows in Home Assistant 2026.3 and later. It is the Helmet libraries' logo, used only to
+tell which library the integration is for (see [Disclaimer](#disclaimer)).
 
 ## Adding cards
 
@@ -156,3 +157,19 @@ ruff check . && ruff format --check .
 
 The parser follows the templates of Finna ([NDL-VuFind2](https://github.com/NatLibFi/NDL-VuFind2), theme `finna2`),
 and the test pages in `tests/fixtures` are built after them.
+
+## Disclaimer
+
+This is an independent, unofficial project. It is not affiliated with, endorsed, sponsored or supported by Helmet,
+the city libraries of Helsinki, Espoo, Vantaa or Kauniainen, the cities themselves, the National Library of Finland
+or Finna. For a library card, loans or fees, contact the library; for this integration, open an issue here rather
+than contacting the library.
+
+Helmet, the Helmet logo and the other names and marks mentioned here are the property of their owners. They are used
+only to tell which library service the integration works with. If you own one of them and want it removed, open an
+issue and it will be removed.
+
+The integration is provided "as is", without warranty of any kind, under the [MIT License](LICENSE). You use it at
+your own risk. In particular, the authors are not responsible for loans that weren't renewed, renewals that were
+used up, late fees, or anything the library does with your account. Always check the web library for the real
+state of your loans and holds.
