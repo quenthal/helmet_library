@@ -1,4 +1,4 @@
-# Helmet libraries for Home Assistant
+# Helmet-kirjasto
 
 <img src="custom_components/helmet/brand/icon.png" width="96" alt="The Helmet logo" align="right">
 
@@ -104,7 +104,7 @@ pages can have your name and other personal details in them, so remove those bef
 ### With HACS
 
 1. Add `https://github.com/quenthal/helmet_library` to HACS custom repositories with type **Integration**
-2. Search for Helmet libraries in HACS and download it
+2. Search for Helmet-kirjasto in HACS and download it
 3. Restart Home Assistant
 4. Add the integration in Settings › Devices & services
 
