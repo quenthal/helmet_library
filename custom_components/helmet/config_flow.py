@@ -10,6 +10,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
+    BooleanSelector,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
@@ -25,7 +26,9 @@ from .const import (
     CONF_NAME,
     CONF_PIN,
     CONF_RENEW_WITHIN_DAYS,
+    CONF_SORT_BY_SHELF,
     DEFAULT_RENEW_WITHIN_DAYS,
+    DEFAULT_SORT_BY_SHELF,
     DOMAIN,
     MAX_RENEW_WITHIN_DAYS,
 )
@@ -49,6 +52,7 @@ OPTIONS_SCHEMA = vol.Schema(
                 min=0, max=MAX_RENEW_WITHIN_DAYS, step=1, mode=NumberSelectorMode.BOX, unit_of_measurement="days"
             )
         ),
+        vol.Required(CONF_SORT_BY_SHELF, default=DEFAULT_SORT_BY_SHELF): BooleanSelector(),
     }
 )
 
@@ -120,12 +124,16 @@ class HelmetConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class HelmetOptionsFlow(OptionsFlow):
-    """How many days before the due date the button renews a loan."""
+    """How many days before the due date the button renews a loan, and how holds are sorted."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             return self.async_create_entry(
-                data={**user_input, CONF_RENEW_WITHIN_DAYS: int(user_input[CONF_RENEW_WITHIN_DAYS])}
+                data={
+                    **user_input,
+                    CONF_RENEW_WITHIN_DAYS: int(user_input[CONF_RENEW_WITHIN_DAYS]),
+                    CONF_SORT_BY_SHELF: bool(user_input.get(CONF_SORT_BY_SHELF, DEFAULT_SORT_BY_SHELF)),
+                }
             )
         return self.async_show_form(
             step_id="init",

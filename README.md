@@ -21,7 +21,7 @@ For each card, a device named **Helmet _name_** with:
 | Overdue loans | Number of overdue loans | Their titles |
 | Next due date | The end (23:59) of the earliest due day, as a timestamp, so it shows as "in 3 days" | `date`, `days_left`, the titles due that day, and whether they can all be renewed |
 | Holds | Number of holds | Every hold with its status (`available`, `in_transit`, `waiting`), queue position, pickup location, last pickup day and pickup number |
-| Holds ready for pickup | Number of holds waiting at the library | The same details for those holds |
+| Holds ready for pickup | Number of holds waiting at the library | The same details for those holds (sorted by last pickup day, or by shelf in the card's Configure) |
 | Fees | Unpaid fees in euros | |
 | Needs attention (binary sensor) | On when a loan is overdue, a loan that can't be renewed is due today or tomorrow, a hold is ready for pickup, or there are unpaid fees | `reasons`, and the titles for each reason |
 | Due dates (calendar) | | An all-day event for each due date, and for the last pickup day of each hold ready for pickup |
@@ -37,8 +37,8 @@ loans doesn't fill the database.
 The **Renew loans due soon** button renews the loans that can be renewed and are due within 3 days, overdue ones
 included. Each renewal uses up one of the item's renewals, and renewing long before the due date wastes one, so the
 button leaves the other loans as they are. A loan just renewed is no longer due soon, so pressing the button again
-doesn't renew it again. The number of days can be changed, from 0 (today) to 14, in the card's **Configure** on the
-integration page.
+doesn't renew it again. The number of days can be changed, from 0 (today) to 14, and holds ready for pickup can be set
+to sort by shelf instead of the last pickup day, in the card's **Configure** on the integration page.
 
 For more choice, the `helmet.renew_loans` action renews a card's loans that match, or all of them:
 

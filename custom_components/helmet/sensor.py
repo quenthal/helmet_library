@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -11,6 +12,7 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, Sen
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
+from .const import CONF_SORT_BY_SHELF, DEFAULT_SORT_BY_SHELF
 from .coordinator import HelmetConfigEntry, HelmetCoordinator
 from .entity import HelmetEntity
 from .library_time import due_moment, library_today
@@ -22,7 +24,7 @@ class HelmetSensorDescription(SensorEntityDescription):
     """How a sensor reads its state and attributes from the account."""
 
     value: Callable[[Account, date], Any]
-    attributes: Callable[[Account, date], dict[str, Any]] | None = None
+    attributes: Callable[[Account, date, HelmetConfigEntry], dict[str, Any]] | None = None
 
 
 def loan_details(loan: Loan, today: date) -> dict[str, Any]:
@@ -80,8 +82,25 @@ def next_due_attributes(account: Account, today: date) -> dict[str, Any]:
     }
 
 
-def available_holds(account: Account) -> list[Hold]:
+def sort_by_shelf(entry: HelmetConfigEntry) -> bool:
+    return bool(entry.options.get(CONF_SORT_BY_SHELF, DEFAULT_SORT_BY_SHELF))
+
+
+def shelf_sort_key(hold: Hold) -> tuple[int, list[tuple[int, int | str]], date, str]:
+    if hold.pickup_number is None:
+        return (1, [], hold.pickup_by or date.max, hold.title)
+    tokens: list[tuple[int, int | str]] = [
+        (0, int(part)) if part.isdigit() else (1, part.casefold())
+        for part in re.split(r"(\d+)", hold.pickup_number.strip())
+        if part
+    ]
+    return (0, tokens, hold.pickup_by or date.max, hold.title)
+
+
+def available_holds(account: Account, *, sort_by_shelf: bool = False) -> list[Hold]:
     holds = [hold for hold in account.holds if hold.status is HoldStatus.AVAILABLE]
+    if sort_by_shelf:
+        return sorted(holds, key=shelf_sort_key)
     return sorted(holds, key=lambda hold: (hold.pickup_by or date.max, hold.title))
 
 
@@ -93,12 +112,14 @@ SENSORS: tuple[HelmetSensorDescription, ...] = (
     HelmetSensorDescription(
         key="loans",
         value=lambda account, today: len(account.loans),
-        attributes=lambda account, today: {"loans": [loan_details(loan, today) for loan in sorted_loans(account)]},
+        attributes=lambda account, today, entry: {
+            "loans": [loan_details(loan, today) for loan in sorted_loans(account)]
+        },
     ),
     HelmetSensorDescription(
         key="overdue_loans",
         value=lambda account, today: sum(loan.overdue(today) for loan in account.loans),
-        attributes=lambda account, today: {
+        attributes=lambda account, today, entry: {
             "titles": [loan.title for loan in sorted_loans(account) if loan.overdue(today)]
         },
     ),
@@ -107,17 +128,19 @@ SENSORS: tuple[HelmetSensorDescription, ...] = (
         # A timestamp rather than a date, so that the frontend tells it as "in 3 days" or "tomorrow".
         device_class=SensorDeviceClass.TIMESTAMP,
         value=next_due_moment,
-        attributes=next_due_attributes,
+        attributes=lambda account, today, entry: next_due_attributes(account, today),
     ),
     HelmetSensorDescription(
         key="holds",
         value=lambda account, today: len(account.holds),
-        attributes=lambda account, today: {"holds": [hold_details(hold) for hold in account.holds]},
+        attributes=lambda account, today, entry: {"holds": [hold_details(hold) for hold in account.holds]},
     ),
     HelmetSensorDescription(
         key="holds_available",
         value=lambda account, today: len(available_holds(account)),
-        attributes=lambda account, today: {"holds": [hold_details(hold) for hold in available_holds(account)]},
+        attributes=lambda account, today, entry: {
+            "holds": [hold_details(hold) for hold in available_holds(account, sort_by_shelf=sort_by_shelf(entry))]
+        },
     ),
     HelmetSensorDescription(
         key="fines",
@@ -152,4 +175,4 @@ class HelmetSensor(HelmetEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any] | None:
         if self.entity_description.attributes is None:
             return None
-        return self.entity_description.attributes(self.coordinator.data, library_today())
+        return self.entity_description.attributes(self.coordinator.data, library_today(), self.coordinator.config_entry)

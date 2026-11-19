@@ -27,6 +27,9 @@ CONF_RENEW_WITHIN_DAYS: Final = "renew_within_days"
 DEFAULT_RENEW_WITHIN_DAYS: Final = 3
 # Shorter than a loan period, so that a renewed loan is no longer due soon and pressing again does nothing.
 MAX_RENEW_WITHIN_DAYS: Final = 14
+# Sort the holds ready for pickup by their shelf number instead of the last pickup day.
+CONF_SORT_BY_SHELF: Final = "sort_by_shelf"
+DEFAULT_SORT_BY_SHELF: Final = False
 
 UPDATE_INTERVAL: Final = timedelta(hours=1)
 REQUEST_TIMEOUT: Final = 30

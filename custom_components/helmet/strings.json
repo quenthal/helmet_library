@@ -33,12 +33,14 @@
   "options": {
     "step": {
       "init": {
-        "title": "Renewing",
+        "title": "Options",
         "data": {
-          "renew_within_days": "Renew loans due within"
+          "renew_within_days": "Renew loans due within",
+          "sort_by_shelf": "Sort holds ready for pickup by shelf"
         },
         "data_description": {
-          "renew_within_days": "The Renew loans due soon button renews the loans that can be renewed and are due within this many days, overdue ones included. Each renewal uses up one of the item's renewals, so a renewal long before the due date wastes it. 0 is today."
+          "renew_within_days": "The Renew loans due soon button renews the loans that can be renewed and are due within this many days, overdue ones included. Each renewal uses up one of the item's renewals, so a renewal long before the due date wastes it. 0 is today.",
+          "sort_by_shelf": "Sort the holds ready for pickup by their shelf number instead of the last pickup day."
         }
       }
     }

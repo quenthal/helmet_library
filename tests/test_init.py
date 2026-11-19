@@ -16,7 +16,14 @@ from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.helmet.api import HelmetAuthError, HelmetError
-from custom_components.helmet.const import CONF_CARD_NUMBER, CONF_NAME, CONF_PIN, CONF_RENEW_WITHIN_DAYS, DOMAIN
+from custom_components.helmet.const import (
+    CONF_CARD_NUMBER,
+    CONF_NAME,
+    CONF_PIN,
+    CONF_RENEW_WITHIN_DAYS,
+    CONF_SORT_BY_SHELF,
+    DOMAIN,
+)
 from custom_components.helmet.parser import Account, Hold, HoldStatus, Loan
 
 ACCOUNT = Account(
@@ -211,10 +218,84 @@ async def test_options(hass: HomeAssistant, account: AsyncMock) -> None:
 
     result = await hass.config_entries.options.async_init(card.entry_id)
     assert result["type"] is FlowResultType.FORM
-    result = await hass.config_entries.options.async_configure(result["flow_id"], {CONF_RENEW_WITHIN_DAYS: 5.0})
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {CONF_RENEW_WITHIN_DAYS: 5.0, CONF_SORT_BY_SHELF: True}
+    )
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert card.options == {CONF_RENEW_WITHIN_DAYS: 5}
+    assert card.options == {CONF_RENEW_WITHIN_DAYS: 5, CONF_SORT_BY_SHELF: True}
+
+
+async def test_holds_sorted_by_shelf_option(hass: HomeAssistant) -> None:
+    account_data = Account(
+        holds=[
+            Hold("Title B", HoldStatus.AVAILABLE, pickup_by=date(2026, 10, 30), pickup_number="100"),
+            Hold("Title A", HoldStatus.AVAILABLE, pickup_by=date(2026, 10, 20), pickup_number="12"),
+            Hold("Title C", HoldStatus.AVAILABLE, pickup_by=date(2026, 10, 25), pickup_number="2"),
+            Hold("Title D", HoldStatus.AVAILABLE, pickup_by=date(2026, 10, 15), pickup_number=None),
+        ]
+    )
+    card = entry()
+    card.add_to_hass(hass)
+    with patch("custom_components.helmet.api.HelmetClient.account", AsyncMock(return_value=account_data)):
+        assert await hass.config_entries.async_setup(card.entry_id)
+        await hass.async_block_till_done()
+
+        # By default (sort_by_shelf=False), sorted by pickup_by date
+        ready = hass.states.get("sensor.helmet_liisa_holds_ready_for_pickup")
+        assert ready is not None
+        assert [h["title"] for h in ready.attributes["holds"]] == ["Title D", "Title A", "Title C", "Title B"]
+
+        # Enable sort_by_shelf
+        result = await hass.config_entries.options.async_init(card.entry_id)
+        await hass.config_entries.options.async_configure(
+            result["flow_id"], {CONF_RENEW_WITHIN_DAYS: 3, CONF_SORT_BY_SHELF: True}
+        )
+        await hass.async_block_till_done()
+
+        ready = hass.states.get("sensor.helmet_liisa_holds_ready_for_pickup")
+        assert ready is not None
+        assert [h["title"] for h in ready.attributes["holds"]] == ["Title C", "Title A", "Title B", "Title D"]
+
+
+def test_available_holds_sorting() -> None:
+    from custom_components.helmet.sensor import available_holds
+
+    holds = [
+        Hold("None 1", HoldStatus.AVAILABLE, pickup_by=date(2026, 10, 10), pickup_number=None),
+        Hold("Alpha B", HoldStatus.AVAILABLE, pickup_by=date(2026, 10, 20), pickup_number="B"),
+        Hold("Shelf 10B", HoldStatus.AVAILABLE, pickup_by=date(2026, 10, 20), pickup_number="10B"),
+        Hold("Shelf 10A", HoldStatus.AVAILABLE, pickup_by=date(2026, 10, 20), pickup_number="10A"),
+        Hold("Shelf 2", HoldStatus.AVAILABLE, pickup_by=date(2026, 10, 20), pickup_number="2"),
+        Hold("Shelf 100", HoldStatus.AVAILABLE, pickup_by=date(2026, 10, 20), pickup_number="100"),
+        Hold("Alpha A", HoldStatus.AVAILABLE, pickup_by=date(2026, 10, 20), pickup_number="A"),
+        Hold("Waiting", HoldStatus.WAITING, pickup_number="1"),
+    ]
+    account_obj = Account(holds=holds)
+
+    # By default, sorted by pickup_by then title
+    default_sorted = available_holds(account_obj, sort_by_shelf=False)
+    assert [h.title for h in default_sorted] == [
+        "None 1",
+        "Alpha A",
+        "Alpha B",
+        "Shelf 100",
+        "Shelf 10A",
+        "Shelf 10B",
+        "Shelf 2",
+    ]
+
+    # By shelf, natural numeric sort, alphanumeric, and holds without shelf at the end
+    shelf_sorted = available_holds(account_obj, sort_by_shelf=True)
+    assert [h.title for h in shelf_sorted] == [
+        "Shelf 2",
+        "Shelf 10A",
+        "Shelf 10B",
+        "Shelf 100",
+        "Alpha A",
+        "Alpha B",
+        "None 1",
+    ]
 
 
 async def test_renamed_button_keeps_its_entity(hass: HomeAssistant, account: AsyncMock) -> None:

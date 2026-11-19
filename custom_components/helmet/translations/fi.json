@@ -33,12 +33,14 @@
   "options": {
     "step": {
       "init": {
-        "title": "Uusiminen",
+        "title": "Asetukset",
         "data": {
-          "renew_within_days": "Uusi lainat, jotka erääntyvät"
+          "renew_within_days": "Uusi lainat, jotka erääntyvät",
+          "sort_by_shelf": "Järjestä noudettavat varaukset hyllyn mukaan"
         },
         "data_description": {
-          "renew_within_days": "Uusi pian erääntyvät lainat -painike uusii uusittavissa olevat lainat, jotka erääntyvät näin monen päivän sisällä, myös myöhässä olevat. Jokainen uusinta käyttää yhden niteen uusintakerroista, joten kauan ennen eräpäivää tehty uusinta menee hukkaan. 0 on tänään."
+          "renew_within_days": "Uusi pian erääntyvät lainat -painike uusii uusittavissa olevat lainat, jotka erääntyvät näin monen päivän sisällä, myös myöhässä olevat. Jokainen uusinta käyttää yhden niteen uusintakerroista, joten kauan ennen eräpäivää tehty uusinta menee hukkaan. 0 on tänään.",
+          "sort_by_shelf": "Järjestää noudettavissa olevat varaukset varaushyllyn numeron mukaan viimeisen noutopäivän sijaan."
         }
       }
     }

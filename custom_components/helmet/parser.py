@@ -20,7 +20,9 @@ DATE = re.compile(r"(\d{1,2})\.(\d{1,2})\.(\d{4})")
 RENEWALS_REMAINING = re.compile(r"Renewals remaining:\s*(\d+)", re.IGNORECASE)
 RENEWED_OF = re.compile(r"Renewed\s+(\d+)\s*/\s*(\d+)", re.IGNORECASE)
 QUEUE_POSITION = re.compile(r"Queue Position:\s*(\d+)", re.IGNORECASE)
-PICKUP_NUMBER = re.compile(r"Pickup number:\s*(\S+)", re.IGNORECASE)
+# The shelf the hold waits on: "Label: value" right after the last pickup day. The label depends on the
+# page language ("Pickup number", "Varaushylly" on Helmet's Finnish page), so it is not matched by name.
+PICKUP_NUMBER = re.compile(r"\d{1,2}\.\d{1,2}\.\d{4}\s+[^\d:]{2,40}:\s*(\S+)")
 EXPIRES = re.compile(r"Expires:\s*(\d{1,2}\.\d{1,2}\.\d{4})", re.IGNORECASE)
 CHECKED_OUT = re.compile(r"Checked Out:\s*(\d{1,2}\.\d{1,2}\.\d{4})", re.IGNORECASE)
 RENEW_SUCCESS = "renewal successful"

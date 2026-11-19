@@ -140,3 +140,34 @@ def test_renew_form() -> None:
     form = parser.renew_form(fixture("loans.html"), "https://helmet.finna.fi/MyResearch/CheckedOut")
     assert form == parser.RenewForm("https://helmet.finna.fi/MyResearch/CheckedOut", "abc")
     assert parser.renew_form(fixture("loans_empty.html"), "https://x") is None
+
+
+def _available_hold_page(alert: str) -> str:
+    return (
+        '<table><tr class="myresearch-row result"><td><h3 class="record-title">Hiljainen helvetti</h3></td>'
+        '<td><div class="holds-status-information">'
+        '<div class="pickup-location-container"><strong>Pickup Location:</strong> Herttoniemi</div>'
+        f'<div class="alert alert-success">{alert}</div></div></td></tr></table>'
+    )
+
+
+def test_hold_shelf_number_is_read_whatever_the_label_is() -> None:
+    # Helmet's own page labels the shelf "Varaushylly" (Finnish), not "Pickup number"; the label changes with
+    # the language, so the number is whatever follows the pickup date as "Label: value".
+    for alert in (
+        "Available for Pickup Until 20.11.2026<br><strong>Pickup number:</strong> 67",
+        "Available for Pickup Until 20.11.2026<br><strong>Hold shelf:</strong> 67",
+        "Available for Pickup Until 20.11.2026<br><strong>Varaushylly:</strong> 67",
+        "Available for Pickup Until 20.11.2026 Varaushylly: 67",
+    ):
+        (hold,) = parser.parse_holds(_available_hold_page(alert))
+
+        assert hold.pickup_by == date(2026, 11, 20), alert
+        assert hold.pickup_number == "67", alert
+
+
+def test_hold_without_shelf_number_has_none() -> None:
+    (hold,) = parser.parse_holds(_available_hold_page("Available for Pickup Until 20.11.2026"))
+
+    assert hold.status is HoldStatus.AVAILABLE
+    assert hold.pickup_number is None
